@@ -3,8 +3,10 @@ import html
 from flask import Flask, request, send_file
 from datetime import datetime
 from pathlib import Path
+import os
 
 app = Flask(__name__)
+INSTALLDIR = Path(os.path.join(os.environ["HOME"], "golem/raspberrypi"))
 
 def commit_data(sql,val):
     conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
@@ -39,7 +41,7 @@ def goals():
 
 @app.route("/files")
 def files():
-    files = [f for f in Path('/home/williamcochran/python/inout').iterdir() if f.is_file()]
+    files = [f for f in Path( INSTALLDIR / "inout").iterdir() if f.is_file()]
 
     answer = ""
     for file in sorted(files, reverse=True):
@@ -54,7 +56,7 @@ def dummy():
 
 @app.route("/picslist")
 def picslist():
-    files = [f for f in Path('/home/williamcochran/python/pics').iterdir() if f.is_file()]
+    files = [f for f in Path( INSTALLDIR / "pics").iterdir() if f.is_file()]
 
     answer = ""
     for file in sorted(files, reverse=True):
@@ -89,11 +91,11 @@ def boiler():
 
 @app.route("/pic/<fname>")
 def pic(fname):
-    return send_file (f"/home/williamcochran/python/pics/{fname}", mimetype='image/jpeg')
+    return send_file (INSTALLDIR / f"pics/{fname}", mimetype='image/jpeg')
 
 @app.route("/file/<fname>")
 def file(fname):
-    return send_file (f"/home/williamcochran/python/inout/{fname}", mimetype='image/jpeg')
+    return send_file (INSTALLDIR / f"inout/{fname}", mimetype='image/jpeg')
 
 @app.route("/printable/<thoughtful>")
 def printable(thoughtful):
@@ -130,130 +132,131 @@ def dialog():
 
 @app.route("/")
 def home():
-    main_page = '''
+    base_url = request.host_url
+    main_page = f'''
     <html><head>
     <script language=javascript>
-        function getEndPoint(ep) {
+        function getEndPoint(ep) {{
             website="http://192.168.68.79:8000/";
             return website + ep;
-        }
-        function fetchBoiler() {
+        }}
+        function fetchBoiler() {{
             if (!document.getElementById("running").checked) return;
             fetch(getEndPoint("boiler"))
               .then(response => response.text())
-              .then(data => {
+              .then(data => {{
                 document.getElementById("boiler").innerHTML = data;
-              })
-              .catch(error => {
+              }})
+              .catch(error => {{
                 document.getElementById("boiler").innerText = "Error: " + error;
-              });
-       }
-        function fetchDialog() {
+              }});
+       }}
+        function fetchDialog() {{
             if (!document.getElementById("running").checked) return;
             fetch(getEndPoint("dialog"))
               .then(response => response.text())
-              .then(data => {
+              .then(data => {{
                 document.getElementById("dialog").innerHTML = data;
-              })
-              .catch(error => {
+              }})
+              .catch(error => {{
                 document.getElementById("dialog").innerText = "Error: " + error;
-              });
-       }
-        function fetchPrintable() {
+              }});
+       }}
+        function fetchPrintable() {{
             if (!document.getElementById("running").checked) return;
             fetch(getEndPoint("printable")+"/"+document.getElementById("thoughtful").checked)
               .then(response => response.text())
-              .then(data => {
+              .then(data => {{
                 document.getElementById("printable").innerHTML = data;
-              })
-              .catch(error => {
+              }})
+              .catch(error => {{
                 document.getElementById("printable").innerHTML = "Error: " + error;
-              });
-       }
-        function fetchBacklog() {
+              }});
+       }}
+        function fetchBacklog() {{
             if (!document.getElementById("running").checked) return;
             fetch(getEndPoint("backlog"))
               .then(response => response.text())
-              .then(data => {
+              .then(data => {{
                 document.getElementById("backlog").innerHTML = data;
-              })
-              .catch(error => {
+              }})
+              .catch(error => {{
                 document.getElementById("backlog").innerHTML = "Error: " + error;
-              });
-       }
-        function fetchFiles() {
+              }});
+       }}
+        function fetchFiles() {{
             if (!document.getElementById("running").checked) return;
             fetch(getEndPoint("files"))
               .then(response => response.text())
-              .then(data => {
+              .then(data => {{
                 document.getElementById("files").innerHTML = data;
-              })
-              .catch(error => {
+              }})
+              .catch(error => {{
                 document.getElementById("files").innerText = "Error: " + error;
-              });
-       }
-        function fetchGoals() {
+              }});
+       }}
+        function fetchGoals() {{
             if (!document.getElementById("running").checked) return;
             fetch(getEndPoint("goals"))
               .then(response => response.text())
-              .then(data => {
+              .then(data => {{
                 document.getElementById("goals").innerHTML = data;
-              })
-              .catch(error => {
+              }})
+              .catch(error => {{
                 document.getElementById("goals").innerText = "Error: " + error;
-              });
-       }
-        function fetchPicsList() {
+              }});
+       }}
+        function fetchPicsList() {{
             if (!document.getElementById("running").checked) return;
             fetch(getEndPoint("picslist"))
               .then(response => response.text())
-              .then(data => {
+              .then(data => {{
                 document.getElementById("picslist").innerHTML = data;
-              })
-              .catch(error => {
+              }})
+              .catch(error => {{
                 document.getElementById("picslist").innerText = "Error: " + error;
-              });
-       }
-        function fetchPic(pic) {
+              }});
+       }}
+        function fetchPic(pic) {{
             document.getElementById("pic").src=getEndPoint("pic") +"/"+pic;
-       }
-        function fetchFile(file) {
+       }}
+        function fetchFile(file) {{
             document.getElementById("filescreen").innerHTML=getEndPoint("file") +"/"+file;
             fetch(getEndPoint("file") + "/" + file)
               .then(response => response.text())
-              .then(data => {
+              .then(data => {{
                 document.getElementById("filescreen").innerHTML = "<pre>" + data + "</pre>";
-              })
-              .catch(error => {
+              }})
+              .catch(error => {{
                 document.getElementById("filescreen").innerText = "Error: " + error;
-              });
-       }
-         function sendText() {
+              }});
+       }}
+         function sendText() {{
                 const prompt = document.getElementById("promptInput").value;
                 document.getElementById("lastq").innerHTML = prompt;
-                fetch(getEndPoint("ask"), {
+                fetch(getEndPoint("ask"), {{
                   method: "POST",
-                  headers: {"Content-Type": "application/json"},
-                  body: JSON.stringify({ prompt: prompt })
-                })
+                  headers: {{"Content-Type": "application/json"}},
+                  body: JSON.stringify({{ prompt: prompt }})
+                }})
                 .then(res => res.text())
-                .then(data => {
+                .then(data => {{
                   document.getElementById("response").innerHTML = data;
-                });
-              }
+                }});
+              }}
 
        current_show = null;
-       function show(screen) {
-            if (current_show != null) {
+       function show(screen) {{
+            if (current_show != null) {{
                 current_show.style.display = 'none';
-            }
+            }}
             current_show = document.getElementById(screen);
             current_show.style.display = 'block';
-       }
+       }}
 
 
 
-       function go() {
+       function go() {{
             setInterval(fetchGoals,1000);
             setInterval(fetchDialog,1000);
             setInterval(fetchPrintable,1000);
@@ -268,7 +271,7 @@ def home():
             document.getElementById("backlog").style.display = 'none';
             document.getElementById("files").style.display = 'none';
             
-       }
+       }}
     </script>
     </head>
     <body onload="go()">
@@ -321,4 +324,4 @@ def home():
     return main_page
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000)
+    app.run(host="0.0.0.0", port=8000, debug=True)
