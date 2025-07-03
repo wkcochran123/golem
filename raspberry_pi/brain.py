@@ -22,11 +22,12 @@ except ImportError:
 
 INSTALLDIR = Path(os.path.join(os.environ["HOME"], "golem/raspberry_pi"))
     
-# LLM model constants
-SLOW = "qwq-32b"
-FAST = "gemma-3-4b-it-qat"
+# LLM model variables (set in main())
+global FAST, SLOW
+FAST = None
+SLOW = None
 
-def make_llm_request(messages, model=SLOW, base_url=None, port=1234):
+def make_llm_request(messages, model=None, base_url=None, port=1234):
     """Centralized LLM request handler with configurable formatting"""
     if client:
         # Use OpenAI client with DeepSeek API
@@ -845,6 +846,8 @@ def run_curl(ai_words):
 
 def run_ef(ai_words, base_url, port=1234):
     model = FAST if ai_words[0] == "FAST" else SLOW
+    if not model:
+        raise ValueError("Model name not configured - check FAST/SLOW settings")
     data = ""
     try:
         with open(INSTALLDIR / f"/inout/{ai_words[1]}", "r") as f:
@@ -856,8 +859,10 @@ def run_ef(ai_words, base_url, port=1234):
     return oneshot_oracle(model, f"You are an AI model trained to provide excellent feedback in the expertise of {expertise}.  Please read the prompt and provide expert, actionable, and concise feedback to the prompt. Please note the following things:  along with evaluation within the expertise, comment on complexity, apparent audiance, correctness, and scale. Please indicate perceived target demographic and venue of the sample. Be very harsh.  Make sure everything makes sense.  If anything at all does not make sense, penalize the work as being inconsistent.", data, base_url, port).split("</think>")[-1]
 
     
-def run_bs(ai_words):
+def run_bs(ai_words, base_url, port=1234):
     model = FAST if ai_words[0] == "FAST" else SLOW
+    if not model:
+        raise ValueError("Model name not configured - check FAST/SLOW settings")
     prompt = " ".join(ai_words[1:])
 
     return oneshot_oracle(model, f"You are an AI model trained to help brainstorm prompts.  Given the prompt below, give four or five possible approaches to achieving the goal of the prompt", prompt).split("</think>")[-1]
@@ -947,8 +952,10 @@ def run_refactor(ai_words):
     return "File written successfully"
 
 
-def run_create(ai_words):
+def run_create(ai_words, base_url, port=1234):
     model = FAST if ai_words[0] == "FAST" else SLOW
+    if not model:
+        raise ValueError("Model name not configured - check FAST/SLOW settings")
     prompt = " ".join(ai_words[2:])
     data = ""
 
@@ -962,8 +969,10 @@ def run_create(ai_words):
         return (f"Error: {e}")
     return "File written successfully"
 
-def run_iterate(ai_words):
+def run_iterate(ai_words, base_url, port=1234):
     model = FAST if ai_words[0] == "FAST" else SLOW
+    if not model:
+        raise ValueError("Model name not configured - check FAST/SLOW settings")
     prompt = " ".join(ai_words[3:])
     data = ""
     try:
@@ -1160,10 +1169,16 @@ def main(iter_count):
     parser.add_argument("--llmurl", type=str, help="url of LLM")
     parser.add_argument("--llmport", type=int, default=1234, help="port of LLM API (default: 1234)")
     parser.add_argument("--apikey", type=str, help="filename containing API key for LLM")
-    global args
+    parser.add_argument("--fast", type=str, default="gemma-3-4b-it-qat",
+                      help="model name for fast responses (default: gemma-3-4b-it-qat)")
+    parser.add_argument("--slow", type=str, default="qwq-32b",
+                      help="model name for slow/responsive responses (default: qwq-32b)")
+    global args, FAST, SLOW, client
     args = parser.parse_args()
     
-    global client
+    FAST = args.fast
+    SLOW = args.slow
+    print(f"Using models - FAST: {FAST}, SLOW: {SLOW}")
     client = None
     if args.apikey:
         try:
