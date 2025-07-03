@@ -5,13 +5,13 @@ import sqlite3
 conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
 cur = conn.cursor()
 
-cur.execute("drop table goals")
-cur.execute("drop table stimuli")
-cur.execute("drop table response")
-cur.execute("drop table memories")
-cur.execute("drop table memory_lookup")
-cur.execute("drop table xpert_results")
-cur.execute("drop table last_boiler")
+cur.execute("DROP TABLE IF EXISTS goals")
+cur.execute("DROP TABLE IF EXISTS stimuli")
+cur.execute("DROP TABLE IF EXISTS response")
+cur.execute("DROP TABLE IF EXISTS memories")
+cur.execute("DROP TABLE IF EXISTS memory_lookup")
+cur.execute("DROP TABLE IF EXISTS xpert_results")
+cur.execute("DROP TABLE IF EXISTS last_boiler")
 
 cur.execute('''
             create table stimuli (
