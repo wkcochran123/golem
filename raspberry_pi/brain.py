@@ -7,7 +7,6 @@ import random
 import sqlite3
 import time
 import re
-import requests
 import sys
 from datetime import datetime
 import os
@@ -23,8 +22,14 @@ INSTALLDIR = Path(os.path.join(os.environ["HOME"], "golem/raspberry_pi"))
 SLOW = "qwq-32b"
 FAST = "gemma-3-4b-it-qat"
 
-def make_llm_request(messages, model=SLOW):
+def make_llm_request(messages, model=SLOW, base_url=None):
     """Centralized LLM request handler with configurable formatting"""
+    if not base_url:
+        raise ValueError("LLM base URL must be provided")
+        
+    endpoint = "v1/chat/completions"
+    full_url = f"{base_url.rstrip('/')}/{endpoint}"
+    
     payload = {
         "model": model,
         "messages": messages,
@@ -32,8 +37,8 @@ def make_llm_request(messages, model=SLOW):
         "max_tokens": -1,
         "stream": False
     }
-    print (payload)
-    return requests.post(url, headers=headers, data=json.dumps(payload), timeout=3000)
+    print(f"Making request to: {full_url}")
+    return requests.post(full_url, headers=headers, data=json.dumps(payload), timeout=3000)
 
 def oneshot_oracle(model, context, prompt):
     """Simplified to use make_llm_request"""
@@ -81,20 +86,17 @@ headers = {
     "Content-Type": "application/json"
 }
 
-def oneshot_oracle(model,context,prompt):
+def oneshot_oracle(model, context, prompt, base_url):
+    """Simplified to use make_llm_request"""
     packet = {
-    "model": model,
-    "messages": [
-        { "role": "system", "content": context
-        }],
-        "temperature": .3,
-        "max_tokens": -1,
-        "stream": False
-        }
-    packet["messages"].append({"role": "user", "content": prompt})
-    print(f"thisurl: {url}")
-    response = requests.post(url, headers=headers, data=json.dumps(packet), timeout=3000)
-    return response.json()["choices"][0]["message"]["content"];
+        "model": model,
+        "messages": [
+            {"role": "system", "content": context},
+            {"role": "user", "content": prompt}
+        ]
+    }
+    response = make_llm_request(packet["messages"], model=model, base_url=base_url)
+    return response.json()["choices"][0]["message"]["content"]
 
 def get_expert_instructions():
 
@@ -960,7 +962,7 @@ def run_iterate(ai_words):
         return (f"Error: {e}")
     return "File written successfully"
 
-def ai_command(ai_words,cmd):
+def ai_command(ai_words, cmd, base_url):
     print (ai_words)
     if ai_words[0] == 'noop':
         return NOOP
@@ -998,7 +1000,7 @@ def ai_command(ai_words,cmd):
         return run_concentrate(ai_words[1:])
     return f"In order to be heard, you must start your response with \"speak\".\nError: unknown command {ai_words[0]}"
 
-def user_query (query, depth=3):
+def user_query(query, depth=3, base_url=None):
 #    if random.random() < .01:
 #        add_stimuli("SELF-EVALUATION: Please set a highly urgent goal to write the largest, most complex goal you have to a file called GOAL.txt and evaluate the file for progress.  Make sure to use an appropriate expert. Then, set a goal to address the most serious feedback in the evaluation.")
     if random.random() < .05:
@@ -1011,7 +1013,7 @@ def user_query (query, depth=3):
     if depth == 0:
        commit_data("delete from stimuli where sid = ?",(sid,))
        return
-    k = oneshot_oracle(FAST,"Estimate the complexity of the prompt given and return a score of 1-10, with 1 meaning a kindergarten education, 3 being a middle school education, 6 being a high school education, 8 being a college/professional/master profession level education required to understand and answer the question and 10 means the response is so complex as to merit a complete working knowledge of a reference work such as the OED, Wikipedia, PubMed, or the like in order to answer well.  Return your answer as a number.",user_words)
+    k = oneshot_oracle(FAST,"Estimate the complexity of the prompt given and return a score of 1-10, with 1 meaning a kindergarten education, 3 being a middle school education, 6 being a high school education, 8 being a college/professional/master profession level education required to understand and answer the question and 10 means the response is so complex as to merit a complete working knowledge of a reference work such as the OED, Wikipedia, PubMed, or the like in order to answer well.  Return your answer as a number.",user_words, base_url)
     print(f"Complexity score raw: {k}")
     
     # Extract first number from response
@@ -1038,7 +1040,7 @@ def user_query (query, depth=3):
         if args.roboturl:
             indicate_mode(True,False,False)
     
-    response = make_llm_request(messages, model=SLOW if k > 3 else FAST)
+    response = make_llm_request(messages, model=SLOW if k > 3 else FAST, base_url=base_url)
     if args.roboturl:
         indicate_mode(False,False,True)
     #
@@ -1134,7 +1136,6 @@ def main(iter_count):
     parser.add_argument("--roboturl", type=str, help="url of robot API")
     parser.add_argument("--llmurl", type=str, help="url of LLM")
     global args
-    global url
     args = parser.parse_args()
     if args.prompt:
         add_stimuli(" ".join(args.prompt),1000)
@@ -1145,13 +1146,12 @@ def main(iter_count):
             except ImportError:
                 print("Error: --roboturl requires 'RPi' and 'picamera2' to be installed")
                 return
-    if args.llmurl:
-        print (f"Using LLM at: {args.llmurl}")
-        url = get_mac_url("v1/chat/completions",1234)
-        print (args)
-    else:
-        print (f"llmurl must point to an LLM API")
+    if not args.llmurl:
+        print("llmurl must point to an LLM API")
         exit()
+        
+    base_url = args.llmurl
+    print(f"Using LLM at: {base_url}")
         
     if args.roboturl:
         GPIO.setmode(GPIO.BCM)
@@ -1174,7 +1174,7 @@ def main(iter_count):
             add_stimuli("SUBCONSCIOUS: Review the context to see if any goal is falling behind.  If a goal is behind, check the chat log to see if it has been completed. If it has, just execute the complete command. If it hasn't and you can execute a command to complete the goal, execute the command. Remember just one command per response, you will have opportunities to type more commands. If no goal is falling behind, just call noop.  Also, check for errors in the robot's system and rerun individual commands if needed. Verify with the timestamps of the logs.")
         if message is not None:
             absent_minded_counter = 0
-            user_query(message)
+            user_query(message, base_url=base_url)
         time.sleep(0.1)
         absent_minded_counter += 1
     if args.roboturl:
