@@ -1131,6 +1131,7 @@ def main(iter_count):
     parser.add_argument("--roboturl", type=str, help="url of robot API")
     parser.add_argument("--llmurl", type=str, help="url of LLM")
     parser.add_argument("--llmport", type=int, default=1234, help="port of LLM API (default: 1234)")
+    parser.add_argument("--apikey", type=str, help="filename containing API key for LLM")
     global args
     args = parser.parse_args()
     if args.prompt:
