@@ -12,6 +12,10 @@ from datetime import datetime
 import os
 from pathlib import Path
 try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
+try:
     import RPi.GPIO as GPIO
 except ImportError:
     GPIO = None  # Will be checked when actually used
@@ -24,21 +28,37 @@ FAST = "gemma-3-4b-it-qat"
 
 def make_llm_request(messages, model=SLOW, base_url=None, port=1234):
     """Centralized LLM request handler with configurable formatting"""
-    if not base_url:
-        raise ValueError("LLM base URL must be provided")
+    if client:
+        # Use OpenAI client
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=0.3,
+                max_tokens=-1,
+                stream=False
+            )
+            return response
+        except Exception as e:
+            print(f"OpenAI client error: {e}")
+            raise
+    else:
+        # Fall back to direct HTTP requests
+        if not base_url:
+            raise ValueError("LLM base URL must be provided")
+            
+        endpoint = "v1/chat/completions"
+        full_url = f"{base_url.rstrip('/')}:{port}/{endpoint}"
         
-    endpoint = "v1/chat/completions"
-    full_url = f"{base_url.rstrip('/')}:{port}/{endpoint}"
-    
-    payload = {
-        "model": model,
-        "messages": messages,
-        "temperature": 0.3,
-        "max_tokens": -1,
-        "stream": False
-    }
-    print(f"Making request to: {full_url}")
-    return requests.post(full_url, headers=headers, data=json.dumps(payload), timeout=3000)
+        payload = {
+            "model": model,
+            "messages": messages,
+            "temperature": 0.3,
+            "max_tokens": -1,
+            "stream": False
+        }
+        print(f"Making request to: {full_url}")
+        return requests.post(full_url, headers=headers, data=json.dumps(payload), timeout=3000)
 
 def oneshot_oracle(model, context, prompt):
     """Simplified to use make_llm_request"""
@@ -88,15 +108,19 @@ headers = {
 
 def oneshot_oracle(model, context, prompt, base_url, port=1234):
     """Simplified to use make_llm_request"""
-    packet = {
-        "model": model,
-        "messages": [
-            {"role": "system", "content": context},
-            {"role": "user", "content": prompt}
-        ]
-    }
-    response = make_llm_request(packet["messages"], model=model, base_url=base_url, port=port)
-    return response.json()["choices"][0]["message"]["content"]
+    messages = [
+        {"role": "system", "content": context},
+        {"role": "user", "content": prompt}
+    ]
+    
+    response = make_llm_request(messages, model=model, base_url=base_url, port=port)
+    
+    if client:
+        # Handle OpenAI client response
+        return response.choices[0].message.content
+    else:
+        # Handle direct HTTP response
+        return response.json()["choices"][0]["message"]["content"]
 
 def get_expert_instructions():
 
@@ -1042,7 +1066,10 @@ def user_query(query, depth=3, base_url=None, port=1234):
     # The LLM can fail to understand the mission and return a prediction-error
     #
     try:
-        words = response.json()["choices"][0]["message"]["content"];
+        if client:
+            words = response.choices[0].message.content
+        else:
+            words = response.json()["choices"][0]["message"]["content"]
     except Exception as e:
         return
     match = re.search(r"<think>\s*(.*?)\s*</think>\s*(.*)", words, re.DOTALL)
@@ -1128,12 +1155,28 @@ def indicate_mode(a,b,c):
 def main(iter_count):
     parser = argparse.ArgumentParser()
     parser.add_argument("--prompt", type=str, help="Provide an initial prompt")
-    parser.add_argument("--roboturl", type=str, help="url of robot API")
+    parser.add_argument("--roboturl", type=str, help="url of robot API") 
     parser.add_argument("--llmurl", type=str, help="url of LLM")
     parser.add_argument("--llmport", type=int, default=1234, help="port of LLM API (default: 1234)")
     parser.add_argument("--apikey", type=str, help="filename containing API key for LLM")
     global args
     args = parser.parse_args()
+    
+    global client
+    client = None
+    if args.apikey:
+        try:
+            with open(args.apikey, 'r') as f:
+                api_key = f.read().strip()
+            client = OpenAI(api_key=api_key, base_url=args.llmurl)
+            print(f"Using OpenAI client with API key from {args.apikey}")
+        except Exception as e:
+            print(f"Error initializing OpenAI client: {e}")
+            exit(1)
+    elif not args.llmurl:
+        print("llmurl must point to an LLM API")
+        exit()
+
     if args.prompt:
         add_stimuli(" ".join(args.prompt),1000)
         if args.roboturl:
@@ -1143,9 +1186,6 @@ def main(iter_count):
             except ImportError:
                 print("Error: --roboturl requires 'RPi' and 'picamera2' to be installed")
                 return
-    if not args.llmurl:
-        print("llmurl must point to an LLM API")
-        exit()
         
     base_url = args.llmurl
     print(f"Using LLM at: {base_url}")
