@@ -1,3 +1,4 @@
+import argparse
 import requests
 import json
 import subprocess
@@ -8,22 +9,18 @@ import time
 import re
 import requests
 import sys
-from picamera2 import Picamera2
 from datetime import datetime
 import os
-import RPi.GPIO as GPIO
 
-def get_mac_url(ep):
-    return f"http://192.168.68.60/{ep}"
+#I don't think the 1 parameter version is called anywhere.
+#def get_mac_url(ep):
+#    return f"http://192.168.68.60/{ep}"
 
 def get_mac_url(ep,port):
-    return f"http://192.168.68.60:{port}/{ep}"
+    return f"{args.llmurl}:{port}/{ep}"
 
 def get_lego_url(ep):
-#    return f"http://10.55.0.2:5000/{ep}"
-    return f"http://192.168.68.79:8000/dummy"
-
-url = get_mac_url("v1/chat/completions",1234)
+    return f"{args.roboturl}/{ep}"
 
 NOOP = "NOOP"
 MOVE = "MOVE"
@@ -62,7 +59,7 @@ def oneshot_oracle(model,context,prompt):
         "stream": False
         }
     packet["messages"].append({"role": "user", "content": prompt})
-
+    print(f"thisurl: {url}")
     response = requests.post(url, headers=headers, data=json.dumps(packet), timeout=3000)
     return response.json()["choices"][0]["message"]["content"];
 
@@ -539,13 +536,16 @@ def get_xpert_result():
     return answer
 
 def get_robot_positionals():
-    total_url = requests.Request('GET', get_lego_url("proximity")).prepare().url
-    response = requests.get(total_url)
-    proximity = int(float(response.content)*70.0/100.0)
-    word = f"{proximity} cm to wall in front\n"
-    if proximity > 69:
-        word = f"More than {proximity} cm to wall in front\n"
-    return "\n--------------------\nSurroundings (your angle of view is 5 degrees and your resolution is 640x480, indexed from top, left)::\n" + run_look([" "]) + "\nPositional information:\n"+word+"\nFor reference, your wheels are 13 cm in circumference.\n" 
+    if args.roboturl:
+        total_url = requests.Request('GET', get_lego_url("proximity")).prepare().url
+        response = requests.get(total_url)
+        proximity = int(float(response.content)*70.0/100.0)
+        word = f"{proximity} cm to wall in front\n"
+        if proximity > 69:
+            word = f"More than {proximity} cm to wall in front\n"
+            return "\n--------------------\nSurroundings (your angle of view is 5 degrees and your resolution is 640x480, indexed from top, left)::\n" + run_look([" "]) + "\nPositional information:\n"+word+"\nFor reference, your wheels are 13 cm in circumference.\n"
+    else:
+        return "Darkness"
 
 
 
@@ -554,8 +554,9 @@ def boiler(model):
                get_current_goals(),
                get_current_time(),
                get_xpert_result(),
-               get_robot_positionals(),
                ]
+    if args.roboturl:
+        context.append[get_robot_positionals()]
     messages = []
     messages.append({"role": "system", "content": "\n".join(context)})
     messages = messages + get_conversation_history()
@@ -598,14 +599,17 @@ def run_look(message):
     return "" 
 
 def run_move(message):
-    params = {
-        "power": message[1],
-        "rotations": message[2]
+    if args.roboturl:
+        params = {
+            "power": message[1],
+            "rotations": message[2]
         }
-
-    total_url = requests.Request('GET', get_lego_url(message[0]), params=params).prepare().url
-    response = requests.get(total_url)
-    return MOVE
+        
+        total_url = requests.Request('GET', get_lego_url(message[0]), params=params).prepare().url
+        response = requests.get(total_url)
+        return MOVE
+    else:
+        return MOVE
     
 def make_new_goal(goal):
     goal = goal.strip('"')
@@ -1004,14 +1008,17 @@ def user_query (query, depth=3):
         json.dump(data, f)
 
     if user_words.startswith("USER"):
-        indicate_mode(True,False,True)
+        if args.roboturl:
+            indicate_mode(True,False,True)
     else:
-        indicate_mode(True,False,False)
+        if args.roboturl:
+            indicate_mode(True,False,False)
     #
     # Ask the LLM what to do next
     #
     response = requests.post(url, headers=headers, data=json.dumps(data), timeout=3000)
-    indicate_mode(False,False,True)
+    if args.roboturl:
+        indicate_mode(False,False,True)
     #
     # The LLM can fail to understand the mission and return a prediction-error
     #
@@ -1098,12 +1105,38 @@ def indicate_mode(a,b,c):
         
 
 def main(iter_count):
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(21, GPIO.OUT)
-    GPIO.setup(20, GPIO.OUT)
-    GPIO.setup(16, GPIO.OUT)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--prompt", type=str, help="Provide an initial prompt")
+    parser.add_argument("--roboturl", type=str, help="url of robot API")
+    parser.add_argument("--llmurl", type=str, help="url of LLM")
+    global args
+    global url
+    args = parser.parse_args()
+    if args.prompt:
+        add_stimuli(" ".join(args.prompt),1000)
+        if args.roboturl:
+            try:
+                import RPi.GPIO as GPIO
+                from picamera2 import Picamera2
+            except ImportError:
+                print("Error: --roboturl requires 'RPi' and 'picamera2' to be installed")
+                return
+    if args.llmurl:
+        print (f"Using LLM at: {args.llmurl}")
+        url = get_mac_url("v1/chat/completions",1234)
+        print (args)
+    else:
+        print (f"llmurl must point to an LLM API")
+        exit()
+        
+    if args.roboturl:
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(21, GPIO.OUT)
+        GPIO.setup(20, GPIO.OUT)
+        GPIO.setup(16, GPIO.OUT)
     absent_minded_counter = 0
-    indicate_mode(False,False,True)
+    if args.roboturl:
+        indicate_mode(False,False,True)
     go = True
     loop_ctr = 0
     while go:
@@ -1120,16 +1153,10 @@ def main(iter_count):
             user_query(message)
         time.sleep(0.1)
         absent_minded_counter += 1
-    GPIO.cleanup()
+    if args.roboturl:
+            GPIO.cleanup()
 
 
-if len(sys.argv) > 1:
-    if (sys.argv[1] == "prompt"):
-        add_stimuli(" ".join(sys.argv[2:]),1000)
-    else:
-        print (f"{sys.argv}")
-        print (f"{ai_command(sys.argv[1:],sys.argv[0])}")
-    exit(0)
-
+                
 main(-1)
 #user_query(("Howdy!",0))
