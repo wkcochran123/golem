@@ -11,6 +11,10 @@ import requests
 import sys
 from datetime import datetime
 import os
+try:
+    import RPi.GPIO as GPIO
+except ImportError:
+    GPIO = None  # Will be checked when actually used
 
 def make_llm_request(messages, model=SLOW):
     """Centralized LLM request handler with configurable formatting"""
@@ -999,7 +1003,7 @@ def user_query (query, depth=3):
         add_stimuli("GOAL REWRITE:  If your longest goal has more than 20 or 30 progress updates, rewrite the goal to summarize progress, refine the plan forward, and focus the work better.",10)
     (user_words,sid) = query;
     if depth == 0:
-       commit_date("delete from stimuli where sid = ?",(sid,))
+       commit_data("delete from stimuli where sid = ?",(sid,))
        return
     k = oneshot_oracle(FAST,"Estimate the complexity of the prompt given and return a score of 1-10, with 1 meaning a kindergarten education, 3 being a middle school education, 6 being a high school education, 8 being a college/professional/master profession level education required to understand and answer the question and 10 means the response is so complex as to merit a complete working knowledge of a reference work such as the OED, Wikipedia, PubMed, or the like in order to answer well.  Return your answer as a number.",user_words)
     print (k)
@@ -1097,6 +1101,8 @@ def random_thought():
     return "Check time and goals. If everything is fine, explore a random thought with the expert system"
 
 def indicate_mode(a,b,c):
+    if GPIO is None:
+        return
     if a:
         GPIO.output(21, GPIO.HIGH)
     else:
