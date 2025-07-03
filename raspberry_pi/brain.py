@@ -140,7 +140,7 @@ def get_expert_instructions():
 
 
         The robot has a storage system that it interacts with the cortex.  It is located at
-            /home/williamcochran/python/inout
+            INSTALLDIR/inout
         These files can be listed as part of the command below.  All filenames given are interpreted
         relative to that path.
                         
@@ -616,7 +616,7 @@ def run_speak(words):
 
 
 def run_look(message):
-#    filename = f"/home/williamcochran/python/pics/{cdt_fname()}.jpg"
+#    filename = INSTALLDIR / f"/pics/{cdt_fname()}.jpg"
 #    picam2.capture_file(filename)
 
 #    with open(filename, 'rb') as f:
@@ -769,7 +769,7 @@ def run_memory(ai_words):
         return recall_memory(ai_words[1])
 
 def run_file_load(words):
-    fname = f"/home/williamcochran/python/inout/{words[0]}";
+    fname = INSTALLDIR / f"/inout/{words[0]}";
     try:
         with open(fname, 'r') as file:
             contents = file.read()
@@ -803,7 +803,7 @@ def run_file(words,cmd):
         return run_file_list()
 
 def run_python(ai_words):
-    ai_words[0] = f"/home/williamcochran/python/inout/{ai_words[0]}"
+    ai_words[0] = INSTALLDIR / f"/inout/{ai_words[0]}"
     cmd = " ".join(['python'] + ai_words).split(" ")
     cmd = [x for x in cmd if x is not None and len (x)>0]
     print (f"{cmd}");
@@ -827,7 +827,7 @@ def run_ef(ai_words, base_url, port=1234):
     model = FAST if ai_words[0] == "FAST" else SLOW
     data = ""
     try:
-        with open(f"/home/williamcochran/python/inout/{ai_words[1]}", "r") as f:
+        with open(INSTALLDIR / f"/inout/{ai_words[1]}", "r") as f:
             data = f.read()
     except Exception as e:
         return f"ERROR: {e}"
@@ -911,7 +911,7 @@ def run_refactor(ai_words):
 
     data = ""
     try:
-        with open(f"/home/williamcochran/python/inout/{ai_words[0]}", "r") as f:
+        with open(INSTALLDIR / f"/inout/{ai_words[0]}", "r") as f:
             data = f.read()
     except Exception as e:
         return f"ERROR: {e}"
@@ -947,7 +947,7 @@ def run_iterate(ai_words):
     prompt = " ".join(ai_words[3:])
     data = ""
     try:
-        with open(f"/home/williamcochran/python/inout/{ai_words[1]}", "r") as f:
+        with open(INSTALLDIR / f"/inout/{ai_words[1]}", "r") as f:
             data = f.read()
     except Exception as e:
         return f"ERROR: {e}"
