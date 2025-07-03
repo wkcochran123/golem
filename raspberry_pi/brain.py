@@ -704,7 +704,7 @@ def run_web(ai_words):
         site = ai_words[1].strip('"')
         html = requests.get(site).text
         data = boiler_web(html,site)
-        response = requests.post(url, headers=headers, data=json.dumps(data), timeout=300)
+        response = make_llm_request(data["messages"], model=SLOW, base_url=args.llmurl)
         words = response.json()["choices"][0]["message"]["content"];
         add_stimuli(words)
         
