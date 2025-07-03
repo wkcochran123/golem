@@ -844,7 +844,7 @@ def run_curl(ai_words):
     os.chdir(str(INSTALLDIR))
     return result.stdout + result.stderr
 
-def run_ef(ai_words, base_url, port=1234):
+def run_ef(ai_words, base_url=None, port=1234):
     model = FAST if ai_words[0] == "FAST" else SLOW
     if not model:
         raise ValueError("Model name not configured - check FAST/SLOW settings")
@@ -859,7 +859,7 @@ def run_ef(ai_words, base_url, port=1234):
     return oneshot_oracle(model, f"You are an AI model trained to provide excellent feedback in the expertise of {expertise}.  Please read the prompt and provide expert, actionable, and concise feedback to the prompt. Please note the following things:  along with evaluation within the expertise, comment on complexity, apparent audiance, correctness, and scale. Please indicate perceived target demographic and venue of the sample. Be very harsh.  Make sure everything makes sense.  If anything at all does not make sense, penalize the work as being inconsistent.", data, base_url, port).split("</think>")[-1]
 
     
-def run_bs(ai_words, base_url, port=1234):
+def run_bs(ai_words, base_url=None, port=1234):
     model = FAST if ai_words[0] == "FAST" else SLOW
     if not model:
         raise ValueError("Model name not configured - check FAST/SLOW settings")
@@ -952,7 +952,7 @@ def run_refactor(ai_words):
     return "File written successfully"
 
 
-def run_create(ai_words, base_url, port=1234):
+def run_create(ai_words, base_url=None, port=1234):
     model = FAST if ai_words[0] == "FAST" else SLOW
     if not model:
         raise ValueError("Model name not configured - check FAST/SLOW settings")
