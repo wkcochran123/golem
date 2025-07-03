@@ -985,19 +985,19 @@ def ai_command(ai_words, cmd, base_url):
     if ai_words[0] == "simple_curl":
         return run_curl (ai_words[1:])
     if ai_words[0] == "evaluate_file":
-        return run_ef (ai_words[1:])
+        return run_ef(ai_words[1:], base_url)
     if ai_words[0] == "brainstorm":
-        return run_bs (ai_words[1:])
+        return run_bs(ai_words[1:], base_url)
     if ai_words[0] == "create":
-        return run_create(ai_words[1:])
+        return run_create(ai_words[1:], base_url)
     if ai_words[0] == "iterate":
-        return run_iterate(ai_words[1:])
+        return run_iterate(ai_words[1:], base_url)
     if ai_words[0] == "code":
-        return run_code(ai_words[1:])
+        return run_code(ai_words[1:], base_url)
     if ai_words[0] == "refactor":
-        return run_refactor(ai_words[1:])
+        return run_refactor(ai_words[1:], base_url)
     if ai_words[0] == "concentrate":
-        return run_concentrate(ai_words[1:])
+        return run_concentrate(ai_words[1:], base_url)
     return f"In order to be heard, you must start your response with \"speak\".\nError: unknown command {ai_words[0]}"
 
 def user_query(query, depth=3, base_url=None):
