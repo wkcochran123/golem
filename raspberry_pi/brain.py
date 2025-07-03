@@ -7,10 +7,50 @@ import random
 import sqlite3
 import time
 import re
-import requests
 import sys
 from datetime import datetime
 import os
+from pathlib import Path
+try:
+    import RPi.GPIO as GPIO
+except ImportError:
+    GPIO = None  # Will be checked when actually used
+
+INSTALLDIR = Path(os.path.join(os.environ["HOME"], "golem/raspberry_pi"))
+    
+# LLM model constants
+SLOW = "qwq-32b"
+FAST = "gemma-3-4b-it-qat"
+
+def make_llm_request(messages, model=SLOW, base_url=None, port=1234):
+    """Centralized LLM request handler with configurable formatting"""
+    if not base_url:
+        raise ValueError("LLM base URL must be provided")
+        
+    endpoint = "v1/chat/completions"
+    full_url = f"{base_url.rstrip('/')}:{port}/{endpoint}"
+    
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": 0.3,
+        "max_tokens": -1,
+        "stream": False
+    }
+    print(f"Making request to: {full_url}")
+    return requests.post(full_url, headers=headers, data=json.dumps(payload), timeout=3000)
+
+def oneshot_oracle(model, context, prompt):
+    """Simplified to use make_llm_request"""
+    packet = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": context},
+            {"role": "user", "content": prompt}
+        ]
+    }
+    response = make_llm_request(packet["messages"], model=model)
+    return response.json()["choices"][0]["message"]["content"]
 
 #I don't think the 1 parameter version is called anywhere.
 #def get_mac_url(ep):
@@ -32,8 +72,6 @@ SPEAK = "SPEAK"
 #model = "mradermacher/llama3-8B-DarkIdol-2.1-Uncensored-1048k-i1"
 #model = "TheBloke/llama2_70b_chat_uncensored"
 #model = "second-state/Mistral-Nemo-Instruct-2407-GGUF/Mistral-Nemo-Instruct-2407-f16.gguf"
-SLOW = "qwq-32b"
-FAST = "gemma-3-4b-it-qat"
 #model = "lmstudio-community/DeepSeek-R1-Distill-Qwen-7B"
 #model = "DavidAU/reka-flash-3-21b-reasoning-uncensored-max-neo-imatrix"
 #model = "DavidAU/llama-3.2-8x3b-moe-dark-champion-instruct-uncensored-abliterated-18.4b"
@@ -48,20 +86,17 @@ headers = {
     "Content-Type": "application/json"
 }
 
-def oneshot_oracle(model,context,prompt):
+def oneshot_oracle(model, context, prompt, base_url, port=1234):
+    """Simplified to use make_llm_request"""
     packet = {
-    "model": model,
-    "messages": [
-        { "role": "system", "content": context
-        }],
-        "temperature": .3,
-        "max_tokens": -1,
-        "stream": False
-        }
-    packet["messages"].append({"role": "user", "content": prompt})
-    print(f"thisurl: {url}")
-    response = requests.post(url, headers=headers, data=json.dumps(packet), timeout=3000)
-    return response.json()["choices"][0]["message"]["content"];
+        "model": model,
+        "messages": [
+            {"role": "system", "content": context},
+            {"role": "user", "content": prompt}
+        ]
+    }
+    response = make_llm_request(packet["messages"], model=model, base_url=base_url, port=port)
+    return response.json()["choices"][0]["message"]["content"]
 
 def get_expert_instructions():
 
@@ -105,7 +140,7 @@ def get_expert_instructions():
 
 
         The robot has a storage system that it interacts with the cortex.  It is located at
-            /home/williamcochran/python/inout
+            INSTALLDIR/inout
         These files can be listed as part of the command below.  All filenames given are interpreted
         relative to that path.
                         
@@ -442,7 +477,7 @@ def get_expert_instructions():
 
 
 def single_number_query(sql):
-    conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
+    conn = sqlite3.connect(INSTALLDIR / "dommy.sqlite", timeout=5.0)
     cur = conn.cursor()
 
     cur.execute(sql)
@@ -456,7 +491,7 @@ def single_number_query(sql):
     return answer
 
 def commit_data(sql):
-    conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
+    conn = sqlite3.connect(INSTALLDIR / "dommy.sqlite", timeout=5.0)
     cur = conn.cursor()
 
     cur.execute(sql)
@@ -464,7 +499,7 @@ def commit_data(sql):
     conn.close()
 
 def commit_data(sql,val):
-    conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
+    conn = sqlite3.connect(INSTALLDIR / "dommy.sqlite", timeout=5.0)
     cur = conn.cursor()
 
     cur.execute(sql,val)
@@ -473,7 +508,7 @@ def commit_data(sql,val):
     
 
 def get_current_goals():
-    conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
+    conn = sqlite3.connect(INSTALLDIR / "dommy.sqlite", timeout=5.0)
     cur = conn.cursor()
 
     cur.execute("SELECT * FROM goals WHERE progress != 1")
@@ -498,7 +533,7 @@ def get_current_time():
     return f"---\nCurrent date and time: {cdt()}"
 
 def get_conversation_history():
-    conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
+    conn = sqlite3.connect(INSTALLDIR / "dommy.sqlite", timeout=5.0)
     cur = conn.cursor()
 
     sql = "SELECT stimuli.prompt, response.think, response.response , stimuli.timestamp FROM stimuli,response WHERE stimuli.sid = response.sid ORDER BY stimuli.sid limit 20"
@@ -515,7 +550,7 @@ def get_conversation_history():
     return answer
 
 def get_xpert_result():
-    conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
+    conn = sqlite3.connect(INSTALLDIR / "dommy.sqlite", timeout=5.0)
     cur = conn.cursor()
 
 
@@ -550,25 +585,18 @@ def get_robot_positionals():
 
 
 def boiler(model):
-    context = [ get_expert_instructions(),
-               get_current_goals(),
-               get_current_time(),
-               get_xpert_result(),
-               ]
+    context = [ 
+        get_expert_instructions(),
+        get_current_goals(),
+        get_current_time(),
+        get_xpert_result(),
+    ]
     if args.roboturl:
-        context.append[get_robot_positionals()]
-    messages = []
-    messages.append({"role": "system", "content": "\n".join(context)})
-    messages = messages + get_conversation_history()
-    answer = {
-        "model": model,
-        "messages": messages,
-        "temperature": .3,
-        "max_tokens": -1,
-        "stream": False
-    }
-    commit_data ("update last_boiler set data = ?",("\n".join(context),))
-    return answer
+        context.append(get_robot_positionals())
+    messages = [{"role": "system", "content": "\n".join(context)}]
+    messages += get_conversation_history()
+    commit_data("update last_boiler set data = ?", ("\n".join(context),))
+    return messages
     
 def run_speak(words):
     text = ' '.join(words)
@@ -588,7 +616,7 @@ def run_speak(words):
 
 
 def run_look(message):
-#    filename = f"/home/williamcochran/python/pics/{cdt_fname()}.jpg"
+#    filename = INSTALLDIR / f"/pics/{cdt_fname()}.jpg"
 #    picam2.capture_file(filename)
 
 #    with open(filename, 'rb') as f:
@@ -644,20 +672,15 @@ def run_goal(ai_words):
         return GOAL
     return f"ERROR: Unknown goal subcommand: {ai_words[0]}"
 
-def boiler_web(model,html, site):
-    context = [ f"The following is the current html for the site: {site}.",
-               html
-               ]
-    return {
-    "model": model,
-    "messages": [
-        { "role": "system", "content": '\n'.join(context) },
-        { "role": "user", "content": "Please provide a detailed summary of the web page and the a list of links with descriptions afterward"},
-        ],
-    "temperature": 1.3,
-    "max_tokens": -1,
-    "stream": False
-    }
+def boiler_web(html, site):
+    context = [
+        f"The following is the current html for the site: {site}.",
+        html
+    ]
+    return [
+        {"role": "system", "content": '\n'.join(context)},
+        {"role": "user", "content": "Please provide a detailed summary of the web page and the a list of links with descriptions afterward"}
+    ]
     
 
 def add_stimuli(stimuli, max_prompts = 10):
@@ -681,12 +704,12 @@ def run_web(ai_words):
         site = ai_words[1].strip('"')
         html = requests.get(site).text
         data = boiler_web(html,site)
-        response = requests.post(url, headers=headers, data=json.dumps(data), timeout=300)
+        response = make_llm_request(data["messages"], model=SLOW, base_url=args.llmurl)
         words = response.json()["choices"][0]["message"]["content"];
         add_stimuli(words)
         
 def get_memory(word):
-    conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
+    conn = sqlite3.connect(INSTALLDIR / "dommy.sqlite", timeout=5.0)
     cur = conn.cursor()
 
     cur.execute("SELECT * FROM memories WHERE description like ?", (f'%{word}%',))
@@ -710,7 +733,7 @@ def tag_memory(words):
     return "Memory tagged successfully."
 
 def recall_memory(mid):
-    conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
+    conn = sqlite3.connect(INSTALLDIR / "dommy.sqlite", timeout=5.0)
     cur = conn.cursor()
 
     cur.execute("select sid from memory_lookup where mid = ?",(mid,))
@@ -722,7 +745,7 @@ def recall_memory(mid):
 
     answer = ""
     for sid in sids:
-        conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
+        conn = sqlite3.connect(INSTALLDIR / "dommy.sqlite", timeout=5.0)
         cur = conn.cursor()
 
         cur.execute('''
@@ -746,7 +769,7 @@ def run_memory(ai_words):
         return recall_memory(ai_words[1])
 
 def run_file_load(words):
-    fname = f"/home/williamcochran/python/inout/{words[0]}";
+    fname = INSTALLDIR / "inout" / words[0]
     try:
         with open(fname, 'r') as file:
             contents = file.read()
@@ -755,17 +778,16 @@ def run_file_load(words):
     return contents
 
 def run_file_list():
-    return "\n".join([d for d in os.listdir('/home/williamcochran/python/inout')])
+    return "\n".join([d for d in os.listdir(INSTALLDIR / "inout")])
 
 def run_file_save(words,cmd):
     if len(cmd.split("\n")) < 2:
         return "ERROR: file save is a multi-line command.  See the example in the instructions for usage"
     file_data = "\n".join(cmd.split("\n")[1:])
-    print (f"Trying to save this:\n{cmd}\nlike this:{file_data}")
     if file_data is None:
         return "Cannot write empty file"
     try:
-        with open(f'/home/williamcochran/python/inout/{words[0]}', 'w') as file:
+        with open(INSTALLDIR / "inout" / words[0], 'w') as file:
             file.write(file_data)
     except Exception as e:
         return (f"Error: {e}")
@@ -780,37 +802,33 @@ def run_file(words,cmd):
         return run_file_list()
 
 def run_python(ai_words):
-    ai_words[0] = f"/home/williamcochran/python/inout/{ai_words[0]}"
-    cmd = " ".join(['python'] + ai_words).split(" ")
-    cmd = [x for x in cmd if x is not None and len (x)>0]
-    print (f"{cmd}");
+    script_path = str(INSTALLDIR / "inout" / ai_words[0])
+    cmd = ['python', script_path] + ai_words[1:]
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, shell=False, timeout=300)
     except Exception as e:
-        return "ERROR: {e}"
-    output = result.stdout + result.stderr
-    return output;
+        return f"ERROR: {e}"
+    return result.stdout + result.stderr
 
 def run_curl(ai_words):
-    os.chdir("/home/williamcochran/python/inout/");
-    cmd = ['/usr/bin/curl', '-A' , 'Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0', ai_words[0], '-o', f'/home/williamcochran/python/inout/{ai_words[1]}']
-    print (f"{cmd}");
+    os.chdir(str(INSTALLDIR / "inout"))
+    output_path = str(INSTALLDIR / "inout" / ai_words[1])
+    cmd = ['/usr/bin/curl', '-A', 'Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0', ai_words[0], '-o', output_path]
     result = subprocess.run(cmd, capture_output=True, text=True, shell=False)
-    output = result.stdout + result.stderr
-    os.chdir("/home/williamcochran/python/");
-    return output;
+    os.chdir(str(INSTALLDIR))
+    return result.stdout + result.stderr
 
-def run_ef(ai_words):
+def run_ef(ai_words, base_url, port=1234):
     model = FAST if ai_words[0] == "FAST" else SLOW
     data = ""
     try:
-        with open(f"/home/williamcochran/python/inout/{ai_words[1]}", "r") as f:
+        with open(INSTALLDIR / f"/inout/{ai_words[1]}", "r") as f:
             data = f.read()
     except Exception as e:
         return f"ERROR: {e}"
     expertise = " ".join(ai_words[2:])
 
-    return oneshot_oracle(model, f"You are an AI model trained to provide excellent feedback in the expertise of {expertise}.  Please read the prompt and provide expert, actionable, and concise feedback to the prompt. Please note the following things:  along with evaluation within the expertise, comment on complexity, apparent audiance, correctness, and scale. Please indicate perceived target demographic and venue of the sample. Be very harsh.  Make sure everything makes sense.  If anything at all does not make sense, penalize the work as being inconsistent.", data).split("</think>")[-1]
+    return oneshot_oracle(model, f"You are an AI model trained to provide excellent feedback in the expertise of {expertise}.  Please read the prompt and provide expert, actionable, and concise feedback to the prompt. Please note the following things:  along with evaluation within the expertise, comment on complexity, apparent audiance, correctness, and scale. Please indicate perceived target demographic and venue of the sample. Be very harsh.  Make sure everything makes sense.  If anything at all does not make sense, penalize the work as being inconsistent.", data, base_url, port).split("</think>")[-1]
 
     
 def run_bs(ai_words):
@@ -846,7 +864,7 @@ def run_code(ai_words):
 
     print (f"{ai_words[0]}")
     try:
-        with open(f'/home/williamcochran/python/inout/{ai_words[0]}', 'w') as file:
+        with open(INSTALLDIR / "inout" / ai_words[0], 'w') as file:
             file.write(code)
     except Exception as e:
         return (f"Error: {e}")
@@ -888,7 +906,7 @@ def run_refactor(ai_words):
 
     data = ""
     try:
-        with open(f"/home/williamcochran/python/inout/{ai_words[0]}", "r") as f:
+        with open(INSTALLDIR / f"/inout/{ai_words[0]}", "r") as f:
             data = f.read()
     except Exception as e:
         return f"ERROR: {e}"
@@ -913,7 +931,7 @@ def run_create(ai_words):
     prose = prose.split("</think>")[-1]
 
     try:
-        with open(f'/home/williamcochran/python/inout/{ai_words[1]}', 'w') as file:
+        with open(INSTALLDIR / "inout" / ai_words[1], 'w') as file:
             file.write(prose)
     except Exception as e:
         return (f"Error: {e}")
@@ -924,7 +942,7 @@ def run_iterate(ai_words):
     prompt = " ".join(ai_words[3:])
     data = ""
     try:
-        with open(f"/home/williamcochran/python/inout/{ai_words[1]}", "r") as f:
+        with open(INSTALLDIR / f"/inout/{ai_words[1]}", "r") as f:
             data = f.read()
     except Exception as e:
         return f"ERROR: {e}"
@@ -933,13 +951,13 @@ def run_iterate(ai_words):
     prose = prose.split("</think>")[-1]
 
     try:
-        with open(f'/home/williamcochran/python/inout/{ai_words[2]}', 'w') as file:
+        with open(INSTALLDIR / "inout" / ai_words[2], 'w') as file:
             file.write(prose)
     except Exception as e:
         return (f"Error: {e}")
     return "File written successfully"
 
-def ai_command(ai_words,cmd):
+def ai_command(ai_words, cmd, base_url, port=1234):
     print (ai_words)
     if ai_words[0] == 'noop':
         return NOOP
@@ -962,22 +980,22 @@ def ai_command(ai_words,cmd):
     if ai_words[0] == "simple_curl":
         return run_curl (ai_words[1:])
     if ai_words[0] == "evaluate_file":
-        return run_ef (ai_words[1:])
+        return run_ef(ai_words[1:], base_url, port)
     if ai_words[0] == "brainstorm":
-        return run_bs (ai_words[1:])
+        return run_bs(ai_words[1:], base_url)
     if ai_words[0] == "create":
-        return run_create(ai_words[1:])
+        return run_create(ai_words[1:], base_url)
     if ai_words[0] == "iterate":
-        return run_iterate(ai_words[1:])
+        return run_iterate(ai_words[1:], base_url)
     if ai_words[0] == "code":
-        return run_code(ai_words[1:])
+        return run_code(ai_words[1:], base_url)
     if ai_words[0] == "refactor":
-        return run_refactor(ai_words[1:])
+        return run_refactor(ai_words[1:], base_url)
     if ai_words[0] == "concentrate":
-        return run_concentrate(ai_words[1:])
+        return run_concentrate(ai_words[1:], base_url)
     return f"In order to be heard, you must start your response with \"speak\".\nError: unknown command {ai_words[0]}"
 
-def user_query (query, depth=3):
+def user_query(query, depth=3, base_url=None, port=1234):
 #    if random.random() < .01:
 #        add_stimuli("SELF-EVALUATION: Please set a highly urgent goal to write the largest, most complex goal you have to a file called GOAL.txt and evaluate the file for progress.  Make sure to use an appropriate expert. Then, set a goal to address the most serious feedback in the evaluation.")
     if random.random() < .05:
@@ -988,24 +1006,27 @@ def user_query (query, depth=3):
         add_stimuli("GOAL REWRITE:  If your longest goal has more than 20 or 30 progress updates, rewrite the goal to summarize progress, refine the plan forward, and focus the work better.",10)
     (user_words,sid) = query;
     if depth == 0:
-       commit_date("delete from stimuli where sid = ?",(sid,))
+       commit_data("delete from stimuli where sid = ?",(sid,))
        return
-    k = oneshot_oracle(FAST,"Estimate the complexity of the prompt given and return a score of 1-10, with 1 meaning a kindergarten education, 3 being a middle school education, 6 being a high school education, 8 being a college/professional/master profession level education required to understand and answer the question and 10 means the response is so complex as to merit a complete working knowledge of a reference work such as the OED, Wikipedia, PubMed, or the like in order to answer well.  Return your answer as a number.",user_words)
-    print (k)
-    data = boiler(FAST)
+    k = oneshot_oracle(FAST,"Estimate the complexity of the prompt given and return a score of 1-10, with 1 meaning a kindergarten education, 3 being a middle school education, 6 being a high school education, 8 being a college/professional/master profession level education required to understand and answer the question and 10 means the response is so complex as to merit a complete working knowledge of a reference work such as the OED, Wikipedia, PubMed, or the like in order to answer well.  Return your answer as a number.",user_words, base_url, port)
+    print(f"Complexity score raw: {k}")
+    
+    # Extract first number from response
     try:
-        k = float(k.split(" ")[0])
-        if k > 3:
-            data = boiler(SLOW)
-    except Exception as e:
-        pass
+        k = float(re.search(r'\d+', k).group())
+    except (AttributeError, ValueError):
+        k = 3.0  # Default to medium complexity if parsing fails
+        print(f"Failed to parse complexity score, defaulting to {k}")
 
-    data["messages"].append({"role": "user", "content": user_words})
+    print(f"Using complexity score: {k}")
+    messages = boiler(FAST)
+    if k > 3:
+        messages = boiler(SLOW)
 
-#    print (oneshot_oracle(SLOW,"[REVIEW]  Evaluate the following description of the robot’s control architecture and telemetry.  Focus on: 1. Is the architecture clearly described?  2. Does the telemetry presentation make loop state and goal progression obvious?  3. What, if anything, is ambiguous, missing, or misleading?  Keep it under 3 bullet points. Only respond if your feedback adds signal. Point out any typos, inconsistencies, or things that just look out of place.", boiler(SLOW)["messages"][0]["content"]))
+    messages.append({"role": "user", "content": user_words})
 
     with open("last", 'w') as f:
-        json.dump(data, f)
+        json.dump({"messages": messages}, f)
 
     if user_words.startswith("USER"):
         if args.roboturl:
@@ -1013,10 +1034,8 @@ def user_query (query, depth=3):
     else:
         if args.roboturl:
             indicate_mode(True,False,False)
-    #
-    # Ask the LLM what to do next
-    #
-    response = requests.post(url, headers=headers, data=json.dumps(data), timeout=3000)
+    
+    response = make_llm_request(messages, model=SLOW if k > 3 else FAST, base_url=base_url, port=port)
     if args.roboturl:
         indicate_mode(False,False,True)
     #
@@ -1062,7 +1081,7 @@ def user_query (query, depth=3):
                 (cmd,answer,cdt()))
 
 def check_for_new_message():
-    conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
+    conn = sqlite3.connect(INSTALLDIR / "dommy.sqlite", timeout=5.0)
     cur = conn.cursor()
 
 
@@ -1090,6 +1109,8 @@ def random_thought():
     return "Check time and goals. If everything is fine, explore a random thought with the expert system"
 
 def indicate_mode(a,b,c):
+    if GPIO is None:
+        return
     if a:
         GPIO.output(21, GPIO.HIGH)
     else:
@@ -1109,8 +1130,8 @@ def main(iter_count):
     parser.add_argument("--prompt", type=str, help="Provide an initial prompt")
     parser.add_argument("--roboturl", type=str, help="url of robot API")
     parser.add_argument("--llmurl", type=str, help="url of LLM")
+    parser.add_argument("--llmport", type=int, default=1234, help="port of LLM API (default: 1234)")
     global args
-    global url
     args = parser.parse_args()
     if args.prompt:
         add_stimuli(" ".join(args.prompt),1000)
@@ -1121,13 +1142,12 @@ def main(iter_count):
             except ImportError:
                 print("Error: --roboturl requires 'RPi' and 'picamera2' to be installed")
                 return
-    if args.llmurl:
-        print (f"Using LLM at: {args.llmurl}")
-        url = get_mac_url("v1/chat/completions",1234)
-        print (args)
-    else:
-        print (f"llmurl must point to an LLM API")
+    if not args.llmurl:
+        print("llmurl must point to an LLM API")
         exit()
+        
+    base_url = args.llmurl
+    print(f"Using LLM at: {base_url}")
         
     if args.roboturl:
         GPIO.setmode(GPIO.BCM)
@@ -1150,7 +1170,7 @@ def main(iter_count):
             add_stimuli("SUBCONSCIOUS: Review the context to see if any goal is falling behind.  If a goal is behind, check the chat log to see if it has been completed. If it has, just execute the complete command. If it hasn't and you can execute a command to complete the goal, execute the command. Remember just one command per response, you will have opportunities to type more commands. If no goal is falling behind, just call noop.  Also, check for errors in the robot's system and rerun individual commands if needed. Verify with the timestamps of the logs.")
         if message is not None:
             absent_minded_counter = 0
-            user_query(message)
+            user_query(message, base_url=args.llmurl, port=args.llmport)
         time.sleep(0.1)
         absent_minded_counter += 1
     if args.roboturl:
