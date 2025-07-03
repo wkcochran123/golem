@@ -22,13 +22,13 @@ INSTALLDIR = Path(os.path.join(os.environ["HOME"], "golem/raspberry_pi"))
 SLOW = "qwq-32b"
 FAST = "gemma-3-4b-it-qat"
 
-def make_llm_request(messages, model=SLOW, base_url=None):
+def make_llm_request(messages, model=SLOW, base_url=None, port=1234):
     """Centralized LLM request handler with configurable formatting"""
     if not base_url:
         raise ValueError("LLM base URL must be provided")
         
-    endpoint = ":1234/v1/chat/completions"
-    full_url = f"{base_url.rstrip('/')}/{endpoint}"
+    endpoint = "v1/chat/completions"
+    full_url = f"{base_url.rstrip('/')}:{port}/{endpoint}"
     
     payload = {
         "model": model,
@@ -86,7 +86,7 @@ headers = {
     "Content-Type": "application/json"
 }
 
-def oneshot_oracle(model, context, prompt, base_url):
+def oneshot_oracle(model, context, prompt, base_url, port=1234):
     """Simplified to use make_llm_request"""
     packet = {
         "model": model,
@@ -95,7 +95,7 @@ def oneshot_oracle(model, context, prompt, base_url):
             {"role": "user", "content": prompt}
         ]
     }
-    response = make_llm_request(packet["messages"], model=model, base_url=base_url)
+    response = make_llm_request(packet["messages"], model=model, base_url=base_url, port=port)
     return response.json()["choices"][0]["message"]["content"]
 
 def get_expert_instructions():
@@ -823,7 +823,7 @@ def run_curl(ai_words):
     os.chdir("/home/williamcochran/python/");
     return output;
 
-def run_ef(ai_words):
+def run_ef(ai_words, base_url, port=1234):
     model = FAST if ai_words[0] == "FAST" else SLOW
     data = ""
     try:
@@ -833,7 +833,7 @@ def run_ef(ai_words):
         return f"ERROR: {e}"
     expertise = " ".join(ai_words[2:])
 
-    return oneshot_oracle(model, f"You are an AI model trained to provide excellent feedback in the expertise of {expertise}.  Please read the prompt and provide expert, actionable, and concise feedback to the prompt. Please note the following things:  along with evaluation within the expertise, comment on complexity, apparent audiance, correctness, and scale. Please indicate perceived target demographic and venue of the sample. Be very harsh.  Make sure everything makes sense.  If anything at all does not make sense, penalize the work as being inconsistent.", data).split("</think>")[-1]
+    return oneshot_oracle(model, f"You are an AI model trained to provide excellent feedback in the expertise of {expertise}.  Please read the prompt and provide expert, actionable, and concise feedback to the prompt. Please note the following things:  along with evaluation within the expertise, comment on complexity, apparent audiance, correctness, and scale. Please indicate perceived target demographic and venue of the sample. Be very harsh.  Make sure everything makes sense.  If anything at all does not make sense, penalize the work as being inconsistent.", data, base_url, port).split("</think>")[-1]
 
     
 def run_bs(ai_words):
@@ -962,7 +962,7 @@ def run_iterate(ai_words):
         return (f"Error: {e}")
     return "File written successfully"
 
-def ai_command(ai_words, cmd, base_url):
+def ai_command(ai_words, cmd, base_url, port=1234):
     print (ai_words)
     if ai_words[0] == 'noop':
         return NOOP
@@ -985,7 +985,7 @@ def ai_command(ai_words, cmd, base_url):
     if ai_words[0] == "simple_curl":
         return run_curl (ai_words[1:])
     if ai_words[0] == "evaluate_file":
-        return run_ef(ai_words[1:], base_url)
+        return run_ef(ai_words[1:], base_url, port)
     if ai_words[0] == "brainstorm":
         return run_bs(ai_words[1:], base_url)
     if ai_words[0] == "create":
@@ -1000,7 +1000,7 @@ def ai_command(ai_words, cmd, base_url):
         return run_concentrate(ai_words[1:], base_url)
     return f"In order to be heard, you must start your response with \"speak\".\nError: unknown command {ai_words[0]}"
 
-def user_query(query, depth=3, base_url=None):
+def user_query(query, depth=3, base_url=None, port=1234):
 #    if random.random() < .01:
 #        add_stimuli("SELF-EVALUATION: Please set a highly urgent goal to write the largest, most complex goal you have to a file called GOAL.txt and evaluate the file for progress.  Make sure to use an appropriate expert. Then, set a goal to address the most serious feedback in the evaluation.")
     if random.random() < .05:
@@ -1013,7 +1013,7 @@ def user_query(query, depth=3, base_url=None):
     if depth == 0:
        commit_data("delete from stimuli where sid = ?",(sid,))
        return
-    k = oneshot_oracle(FAST,"Estimate the complexity of the prompt given and return a score of 1-10, with 1 meaning a kindergarten education, 3 being a middle school education, 6 being a high school education, 8 being a college/professional/master profession level education required to understand and answer the question and 10 means the response is so complex as to merit a complete working knowledge of a reference work such as the OED, Wikipedia, PubMed, or the like in order to answer well.  Return your answer as a number.",user_words, base_url)
+    k = oneshot_oracle(FAST,"Estimate the complexity of the prompt given and return a score of 1-10, with 1 meaning a kindergarten education, 3 being a middle school education, 6 being a high school education, 8 being a college/professional/master profession level education required to understand and answer the question and 10 means the response is so complex as to merit a complete working knowledge of a reference work such as the OED, Wikipedia, PubMed, or the like in order to answer well.  Return your answer as a number.",user_words, base_url, port)
     print(f"Complexity score raw: {k}")
     
     # Extract first number from response
@@ -1040,7 +1040,7 @@ def user_query(query, depth=3, base_url=None):
         if args.roboturl:
             indicate_mode(True,False,False)
     
-    response = make_llm_request(messages, model=SLOW if k > 3 else FAST, base_url=base_url)
+    response = make_llm_request(messages, model=SLOW if k > 3 else FAST, base_url=base_url, port=port)
     if args.roboturl:
         indicate_mode(False,False,True)
     #
@@ -1135,6 +1135,7 @@ def main(iter_count):
     parser.add_argument("--prompt", type=str, help="Provide an initial prompt")
     parser.add_argument("--roboturl", type=str, help="url of robot API")
     parser.add_argument("--llmurl", type=str, help="url of LLM")
+    parser.add_argument("--llmport", type=int, default=1234, help="port of LLM API (default: 1234)")
     global args
     args = parser.parse_args()
     if args.prompt:
@@ -1174,7 +1175,7 @@ def main(iter_count):
             add_stimuli("SUBCONSCIOUS: Review the context to see if any goal is falling behind.  If a goal is behind, check the chat log to see if it has been completed. If it has, just execute the complete command. If it hasn't and you can execute a command to complete the goal, execute the command. Remember just one command per response, you will have opportunities to type more commands. If no goal is falling behind, just call noop.  Also, check for errors in the robot's system and rerun individual commands if needed. Verify with the timestamps of the logs.")
         if message is not None:
             absent_minded_counter = 0
-            user_query(message, base_url=base_url)
+            user_query(message, base_url=args.llmurl, port=args.llmport)
         time.sleep(0.1)
         absent_minded_counter += 1
     if args.roboturl:
