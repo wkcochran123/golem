@@ -27,7 +27,7 @@ def make_llm_request(messages, model=SLOW, base_url=None):
     if not base_url:
         raise ValueError("LLM base URL must be provided")
         
-    endpoint = "v1/chat/completions"
+    endpoint = ":1234/v1/chat/completions"
     full_url = f"{base_url.rstrip('/')}/{endpoint}"
     
     payload = {
