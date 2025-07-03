@@ -769,7 +769,7 @@ def run_memory(ai_words):
         return recall_memory(ai_words[1])
 
 def run_file_load(words):
-    fname = INSTALLDIR / f"/inout/{words[0]}";
+    fname = INSTALLDIR / "inout" / words[0]
     try:
         with open(fname, 'r') as file:
             contents = file.read()
@@ -778,17 +778,16 @@ def run_file_load(words):
     return contents
 
 def run_file_list():
-    return "\n".join([d for d in os.listdir('/home/williamcochran/python/inout')])
+    return "\n".join([d for d in os.listdir(INSTALLDIR / "inout")])
 
 def run_file_save(words,cmd):
     if len(cmd.split("\n")) < 2:
         return "ERROR: file save is a multi-line command.  See the example in the instructions for usage"
     file_data = "\n".join(cmd.split("\n")[1:])
-    print (f"Trying to save this:\n{cmd}\nlike this:{file_data}")
     if file_data is None:
         return "Cannot write empty file"
     try:
-        with open(f'/home/williamcochran/python/inout/{words[0]}', 'w') as file:
+        with open(INSTALLDIR / "inout" / words[0], 'w') as file:
             file.write(file_data)
     except Exception as e:
         return (f"Error: {e}")
@@ -803,25 +802,21 @@ def run_file(words,cmd):
         return run_file_list()
 
 def run_python(ai_words):
-    ai_words[0] = INSTALLDIR / f"/inout/{ai_words[0]}"
-    cmd = " ".join(['python'] + ai_words).split(" ")
-    cmd = [x for x in cmd if x is not None and len (x)>0]
-    print (f"{cmd}");
+    script_path = str(INSTALLDIR / "inout" / ai_words[0])
+    cmd = ['python', script_path] + ai_words[1:]
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, shell=False, timeout=300)
     except Exception as e:
-        return "ERROR: {e}"
-    output = result.stdout + result.stderr
-    return output;
+        return f"ERROR: {e}"
+    return result.stdout + result.stderr
 
 def run_curl(ai_words):
-    os.chdir("/home/williamcochran/python/inout/");
-    cmd = ['/usr/bin/curl', '-A' , 'Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0', ai_words[0], '-o', f'/home/williamcochran/python/inout/{ai_words[1]}']
-    print (f"{cmd}");
+    os.chdir(str(INSTALLDIR / "inout"))
+    output_path = str(INSTALLDIR / "inout" / ai_words[1])
+    cmd = ['/usr/bin/curl', '-A', 'Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0', ai_words[0], '-o', output_path]
     result = subprocess.run(cmd, capture_output=True, text=True, shell=False)
-    output = result.stdout + result.stderr
-    os.chdir("/home/williamcochran/python/");
-    return output;
+    os.chdir(str(INSTALLDIR))
+    return result.stdout + result.stderr
 
 def run_ef(ai_words, base_url, port=1234):
     model = FAST if ai_words[0] == "FAST" else SLOW
@@ -869,7 +864,7 @@ def run_code(ai_words):
 
     print (f"{ai_words[0]}")
     try:
-        with open(f'/home/williamcochran/python/inout/{ai_words[0]}', 'w') as file:
+        with open(INSTALLDIR / "inout" / ai_words[0], 'w') as file:
             file.write(code)
     except Exception as e:
         return (f"Error: {e}")
@@ -936,7 +931,7 @@ def run_create(ai_words):
     prose = prose.split("</think>")[-1]
 
     try:
-        with open(f'/home/williamcochran/python/inout/{ai_words[1]}', 'w') as file:
+        with open(INSTALLDIR / "inout" / ai_words[1], 'w') as file:
             file.write(prose)
     except Exception as e:
         return (f"Error: {e}")
@@ -956,7 +951,7 @@ def run_iterate(ai_words):
     prose = prose.split("</think>")[-1]
 
     try:
-        with open(f'/home/williamcochran/python/inout/{ai_words[2]}', 'w') as file:
+        with open(INSTALLDIR / "inout" / ai_words[2], 'w') as file:
             file.write(prose)
     except Exception as e:
         return (f"Error: {e}")
