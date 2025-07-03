@@ -29,21 +29,22 @@ FAST = "gemma-3-4b-it-qat"
 def make_llm_request(messages, model=SLOW, base_url=None, port=1234):
     """Centralized LLM request handler with configurable formatting"""
     if client:
-        # Use OpenAI client
+        # Use OpenAI client with DeepSeek API
         try:
-            response = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=0.3,
-                max_tokens=-1,
-                stream=False
-            )
+            payload = {
+                "model": model,
+                "messages": messages,
+                "temperature": 0.3,
+                "max_tokens": 65536,  # 64k token limit for DeepSeek
+                "stream": False
+            }
+            response = client.chat.completions.create(**payload)
             return response
         except Exception as e:
             print(f"OpenAI client error: {e}")
             raise
     else:
-        # Fall back to direct HTTP requests
+        # Fall back to direct HTTP requests (original behavior)
         if not base_url:
             raise ValueError("LLM base URL must be provided")
             
@@ -54,7 +55,7 @@ def make_llm_request(messages, model=SLOW, base_url=None, port=1234):
             "model": model,
             "messages": messages,
             "temperature": 0.3,
-            "max_tokens": -1,
+            "max_tokens": -1,  # Keep unlimited for direct requests
             "stream": False
         }
         print(f"Making request to: {full_url}")
