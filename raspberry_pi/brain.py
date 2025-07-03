@@ -11,11 +11,14 @@ import requests
 import sys
 from datetime import datetime
 import os
+from pathlib import Path
 try:
     import RPi.GPIO as GPIO
 except ImportError:
     GPIO = None  # Will be checked when actually used
 
+INSTALLDIR = Path(os.path.join(os.environ["HOME"], "golem/raspberry_pi"))
+    
 # LLM model constants
 SLOW = "qwq-32b"
 FAST = "gemma-3-4b-it-qat"
@@ -29,6 +32,7 @@ def make_llm_request(messages, model=SLOW):
         "max_tokens": -1,
         "stream": False
     }
+    print (payload)
     return requests.post(url, headers=headers, data=json.dumps(payload), timeout=3000)
 
 def oneshot_oracle(model, context, prompt):
@@ -471,7 +475,7 @@ def get_expert_instructions():
 
 
 def single_number_query(sql):
-    conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
+    conn = sqlite3.connect(INSTALLDIR / "dommy.sqlite", timeout=5.0)
     cur = conn.cursor()
 
     cur.execute(sql)
@@ -485,7 +489,7 @@ def single_number_query(sql):
     return answer
 
 def commit_data(sql):
-    conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
+    conn = sqlite3.connect(INSTALLDIR / "dommy.sqlite", timeout=5.0)
     cur = conn.cursor()
 
     cur.execute(sql)
@@ -493,7 +497,7 @@ def commit_data(sql):
     conn.close()
 
 def commit_data(sql,val):
-    conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
+    conn = sqlite3.connect(INSTALLDIR / "dommy.sqlite", timeout=5.0)
     cur = conn.cursor()
 
     cur.execute(sql,val)
@@ -502,7 +506,7 @@ def commit_data(sql,val):
     
 
 def get_current_goals():
-    conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
+    conn = sqlite3.connect(INSTALLDIR / "dommy.sqlite", timeout=5.0)
     cur = conn.cursor()
 
     cur.execute("SELECT * FROM goals WHERE progress != 1")
@@ -527,7 +531,7 @@ def get_current_time():
     return f"---\nCurrent date and time: {cdt()}"
 
 def get_conversation_history():
-    conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
+    conn = sqlite3.connect(INSTALLDIR / "dommy.sqlite", timeout=5.0)
     cur = conn.cursor()
 
     sql = "SELECT stimuli.prompt, response.think, response.response , stimuli.timestamp FROM stimuli,response WHERE stimuli.sid = response.sid ORDER BY stimuli.sid limit 20"
@@ -544,7 +548,7 @@ def get_conversation_history():
     return answer
 
 def get_xpert_result():
-    conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
+    conn = sqlite3.connect(INSTALLDIR / "dommy.sqlite", timeout=5.0)
     cur = conn.cursor()
 
 
@@ -703,7 +707,7 @@ def run_web(ai_words):
         add_stimuli(words)
         
 def get_memory(word):
-    conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
+    conn = sqlite3.connect(INSTALLDIR / "dommy.sqlite", timeout=5.0)
     cur = conn.cursor()
 
     cur.execute("SELECT * FROM memories WHERE description like ?", (f'%{word}%',))
@@ -727,7 +731,7 @@ def tag_memory(words):
     return "Memory tagged successfully."
 
 def recall_memory(mid):
-    conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
+    conn = sqlite3.connect(INSTALLDIR / "dommy.sqlite", timeout=5.0)
     cur = conn.cursor()
 
     cur.execute("select sid from memory_lookup where mid = ?",(mid,))
@@ -739,7 +743,7 @@ def recall_memory(mid):
 
     answer = ""
     for sid in sids:
-        conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
+        conn = sqlite3.connect(INSTALLDIR / "dommy.sqlite", timeout=5.0)
         cur = conn.cursor()
 
         cur.execute('''
@@ -1075,7 +1079,7 @@ def user_query (query, depth=3):
                 (cmd,answer,cdt()))
 
 def check_for_new_message():
-    conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
+    conn = sqlite3.connect(INSTALLDIR / "dommy.sqlite", timeout=5.0)
     cur = conn.cursor()
 
 
