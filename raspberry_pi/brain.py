@@ -12,6 +12,29 @@ import sys
 from datetime import datetime
 import os
 
+def make_llm_request(messages, model=SLOW):
+    """Centralized LLM request handler with configurable formatting"""
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": 0.3,
+        "max_tokens": -1,
+        "stream": False
+    }
+    return requests.post(url, headers=headers, data=json.dumps(payload), timeout=3000)
+
+def oneshot_oracle(model, context, prompt):
+    """Simplified to use make_llm_request"""
+    packet = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": context},
+            {"role": "user", "content": prompt}
+        ]
+    }
+    response = make_llm_request(packet["messages"], model=model)
+    return response.json()["choices"][0]["message"]["content"]
+
 #I don't think the 1 parameter version is called anywhere.
 #def get_mac_url(ep):
 #    return f"http://192.168.68.60/{ep}"
@@ -550,25 +573,18 @@ def get_robot_positionals():
 
 
 def boiler(model):
-    context = [ get_expert_instructions(),
-               get_current_goals(),
-               get_current_time(),
-               get_xpert_result(),
-               ]
+    context = [ 
+        get_expert_instructions(),
+        get_current_goals(),
+        get_current_time(),
+        get_xpert_result(),
+    ]
     if args.roboturl:
-        context.append[get_robot_positionals()]
-    messages = []
-    messages.append({"role": "system", "content": "\n".join(context)})
-    messages = messages + get_conversation_history()
-    answer = {
-        "model": model,
-        "messages": messages,
-        "temperature": .3,
-        "max_tokens": -1,
-        "stream": False
-    }
-    commit_data ("update last_boiler set data = ?",("\n".join(context),))
-    return answer
+        context.append(get_robot_positionals())
+    messages = [{"role": "system", "content": "\n".join(context)}]
+    messages += get_conversation_history()
+    commit_data("update last_boiler set data = ?", ("\n".join(context),))
+    return messages
     
 def run_speak(words):
     text = ' '.join(words)
@@ -644,20 +660,15 @@ def run_goal(ai_words):
         return GOAL
     return f"ERROR: Unknown goal subcommand: {ai_words[0]}"
 
-def boiler_web(model,html, site):
-    context = [ f"The following is the current html for the site: {site}.",
-               html
-               ]
-    return {
-    "model": model,
-    "messages": [
-        { "role": "system", "content": '\n'.join(context) },
-        { "role": "user", "content": "Please provide a detailed summary of the web page and the a list of links with descriptions afterward"},
-        ],
-    "temperature": 1.3,
-    "max_tokens": -1,
-    "stream": False
-    }
+def boiler_web(html, site):
+    context = [
+        f"The following is the current html for the site: {site}.",
+        html
+    ]
+    return [
+        {"role": "system", "content": '\n'.join(context)},
+        {"role": "user", "content": "Please provide a detailed summary of the web page and the a list of links with descriptions afterward"}
+    ]
     
 
 def add_stimuli(stimuli, max_prompts = 10):
@@ -992,20 +1003,18 @@ def user_query (query, depth=3):
        return
     k = oneshot_oracle(FAST,"Estimate the complexity of the prompt given and return a score of 1-10, with 1 meaning a kindergarten education, 3 being a middle school education, 6 being a high school education, 8 being a college/professional/master profession level education required to understand and answer the question and 10 means the response is so complex as to merit a complete working knowledge of a reference work such as the OED, Wikipedia, PubMed, or the like in order to answer well.  Return your answer as a number.",user_words)
     print (k)
-    data = boiler(FAST)
+    messages = boiler(FAST)
     try:
         k = float(k.split(" ")[0])
         if k > 3:
-            data = boiler(SLOW)
+            messages = boiler(SLOW)
     except Exception as e:
         pass
 
-    data["messages"].append({"role": "user", "content": user_words})
-
-#    print (oneshot_oracle(SLOW,"[REVIEW]  Evaluate the following description of the robot’s control architecture and telemetry.  Focus on: 1. Is the architecture clearly described?  2. Does the telemetry presentation make loop state and goal progression obvious?  3. What, if anything, is ambiguous, missing, or misleading?  Keep it under 3 bullet points. Only respond if your feedback adds signal. Point out any typos, inconsistencies, or things that just look out of place.", boiler(SLOW)["messages"][0]["content"]))
+    messages.append({"role": "user", "content": user_words})
 
     with open("last", 'w') as f:
-        json.dump(data, f)
+        json.dump({"messages": messages}, f)
 
     if user_words.startswith("USER"):
         if args.roboturl:
@@ -1013,10 +1022,8 @@ def user_query (query, depth=3):
     else:
         if args.roboturl:
             indicate_mode(True,False,False)
-    #
-    # Ask the LLM what to do next
-    #
-    response = requests.post(url, headers=headers, data=json.dumps(data), timeout=3000)
+    
+    response = make_llm_request(messages, model=SLOW if k > 3 else FAST)
     if args.roboturl:
         indicate_mode(False,False,True)
     #
