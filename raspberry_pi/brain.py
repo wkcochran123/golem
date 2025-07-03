@@ -867,7 +867,7 @@ def run_bs(ai_words, base_url=None, port=1234):
 
     return oneshot_oracle(model, f"You are an AI model trained to help brainstorm prompts.  Given the prompt below, give four or five possible approaches to achieving the goal of the prompt", prompt).split("</think>")[-1]
 
-def run_code(ai_words):
+def run_code(ai_words, base_url=None, port=1234):
     prompt = " ".join(ai_words[1:])
 
     context = '''
@@ -890,7 +890,7 @@ def run_code(ai_words):
 
     context = f"{context}\nCurrent date/time:{cdt()}"
 
-    code = oneshot_oracle(SLOW, context, prompt).split("</think>")[-1]
+    code = oneshot_oracle(SLOW, context, prompt, base_url, port).split("</think>")[-1]
 
     print (f"{ai_words[0]}")
     try:
@@ -900,7 +900,7 @@ def run_code(ai_words):
         return (f"Error: {e}")
     return "File written successfully"
 
-def run_concentrate(ai_words):
+def run_concentrate(ai_words, base_url=None, port=1234):
     prompt = " ".join(ai_words[0:])
 
     context = '''
@@ -908,10 +908,10 @@ def run_concentrate(ai_words):
     instructions on how to resolve the issue.
     '''
 
-    return oneshot_oracle(SLOW, context, prompt).split("</think>")[-1]
+    return oneshot_oracle(SLOW, context, prompt, base_url, port).split("</think>")[-1]
 
 
-def run_refactor(ai_words):
+def run_refactor(ai_words, base_url=None, port=1234):
     prompt = " ".join(ai_words[1:])
 
     context = '''
@@ -942,10 +942,10 @@ def run_refactor(ai_words):
         return f"ERROR: {e}"
 
     prompt = f"Prompt:{prompt}\nScript to refactor:\n{data}"
-    code = oneshot_oracle(SLOW, context, prompt).split("</think>")[-1]
+    code = oneshot_oracle(SLOW, context, prompt, base_url, port).split("</think>")[-1]
 
     try:
-        with open(f'/home/williamcochran/python/inout/{ai_words[0]}', 'w') as file:
+        with open(INSTALLDIR / "inout" / ai_words[0], 'w') as file:
             file.write(code)
     except Exception as e:
         return (f"Error: {e}")
