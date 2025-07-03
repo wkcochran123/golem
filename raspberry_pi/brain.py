@@ -16,6 +16,10 @@ try:
 except ImportError:
     GPIO = None  # Will be checked when actually used
 
+# LLM model constants
+SLOW = "qwq-32b"
+FAST = "gemma-3-4b-it-qat"
+
 def make_llm_request(messages, model=SLOW):
     """Centralized LLM request handler with configurable formatting"""
     payload = {
@@ -59,8 +63,6 @@ SPEAK = "SPEAK"
 #model = "mradermacher/llama3-8B-DarkIdol-2.1-Uncensored-1048k-i1"
 #model = "TheBloke/llama2_70b_chat_uncensored"
 #model = "second-state/Mistral-Nemo-Instruct-2407-GGUF/Mistral-Nemo-Instruct-2407-f16.gguf"
-SLOW = "qwq-32b"
-FAST = "gemma-3-4b-it-qat"
 #model = "lmstudio-community/DeepSeek-R1-Distill-Qwen-7B"
 #model = "DavidAU/reka-flash-3-21b-reasoning-uncensored-max-neo-imatrix"
 #model = "DavidAU/llama-3.2-8x3b-moe-dark-champion-instruct-uncensored-abliterated-18.4b"
