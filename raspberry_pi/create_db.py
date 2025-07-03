@@ -1,8 +1,10 @@
 import sqlite3
+import os
+from pathlib import Path
 
+INSTALLDIR = Path(os.path.join(os.environ["HOME"], "golem/raspberry_pi"))
 
-
-conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
+conn = sqlite3.connect(INSTALLDIR / "dommy.sqlite", timeout=5.0)
 cur = conn.cursor()
 
 cur.execute("DROP TABLE IF EXISTS goals")

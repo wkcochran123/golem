@@ -1,12 +1,14 @@
 import sqlite3
 import html
 from flask import Flask, request, send_file
+from flask_cors import CORS
 from datetime import datetime
 from pathlib import Path
 import os
 
 app = Flask(__name__)
-INSTALLDIR = Path(os.path.join(os.environ["HOME"], "golem/raspberrypi"))
+CORS(app)
+INSTALLDIR = Path(os.path.join(os.environ["HOME"], "golem/raspberry_pi"))
 
 def commit_data(sql,val):
     conn = sqlite3.connect("dommy.sqlite", timeout=5.0)

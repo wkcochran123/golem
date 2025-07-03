@@ -1110,7 +1110,7 @@ def user_query(query, depth=3, base_url=None, port=1234):
         if answer == GOAL:
             add_stimuli(f"MAKE PROGRESS: DO NOT RUN A GOAL COMMAND, RUN ANY OTHER COMMAND. If there are no goals, noop.", 8)
         elif answer != NOOP:
-            add_stimuli(f"UPDATE GOALS: ONLY RUN A GOAL OR NOOP COMMAND. Review the chat log and telemtry. Compare against current goals.  If any milestone of a goal has been accomplished, append to that goal to indicate the milestone is complete, lack of progress or obstacle in the way.  If there is an obstacle, consider brainstorming or concentrating as the next action for the goal.  If the progress updates do not look meaningful, consider brainstorming or concentrating as the next action for the goal.  Be sure to include the entire goal when brainstorming or concentrating.  If there are no goals, simply noop", 3)
+            add_stimuli(f"UPDATE GOALS: ONLY RUN A GOAL OR NOOP COMMAND. Review the chat log, storage, and telemtry. Compare against current goals.  If any milestone of a goal has been accomplished, append to that goal to indicate the milestone is complete, lack of progress or obstacle in the way.  If there is an obstacle, consider brainstorming or concentrating as the next action for the goal.  If the progress updates do not look meaningful, consider brainstorming or concentrating as the next action for the goal.  Be sure to include the entire goal when brainstorming or concentrating.  If there are no goals, simply noop", 3)
         else:
             print (f"no updated stimulus added {answer}")
     if answer is not None:
