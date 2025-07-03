@@ -1012,14 +1012,19 @@ def user_query (query, depth=3):
        commit_data("delete from stimuli where sid = ?",(sid,))
        return
     k = oneshot_oracle(FAST,"Estimate the complexity of the prompt given and return a score of 1-10, with 1 meaning a kindergarten education, 3 being a middle school education, 6 being a high school education, 8 being a college/professional/master profession level education required to understand and answer the question and 10 means the response is so complex as to merit a complete working knowledge of a reference work such as the OED, Wikipedia, PubMed, or the like in order to answer well.  Return your answer as a number.",user_words)
-    print (k)
-    messages = boiler(FAST)
+    print(f"Complexity score raw: {k}")
+    
+    # Extract first number from response
     try:
-        k = float(k.split(" ")[0])
-        if k > 3:
-            messages = boiler(SLOW)
-    except Exception as e:
-        pass
+        k = float(re.search(r'\d+', k).group())
+    except (AttributeError, ValueError):
+        k = 3.0  # Default to medium complexity if parsing fails
+        print(f"Failed to parse complexity score, defaulting to {k}")
+
+    print(f"Using complexity score: {k}")
+    messages = boiler(FAST)
+    if k > 3:
+        messages = boiler(SLOW)
 
     messages.append({"role": "user", "content": user_words})
 
