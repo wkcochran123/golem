@@ -991,7 +991,7 @@ def run_iterate(ai_words, base_url, port=1234):
         return (f"Error: {e}")
     return "File written successfully"
 
-def ai_command(ai_words, cmd, base_url, port=1234):
+def ai_command(ai_words, cmd, base_url=None, port=1234):
     print (ai_words)
     if ai_words[0] == 'noop':
         return NOOP
@@ -1016,17 +1016,17 @@ def ai_command(ai_words, cmd, base_url, port=1234):
     if ai_words[0] == "evaluate_file":
         return run_ef(ai_words[1:], base_url, port)
     if ai_words[0] == "brainstorm":
-        return run_bs(ai_words[1:], base_url)
+        return run_bs(ai_words[1:], base_url, port)
     if ai_words[0] == "create":
-        return run_create(ai_words[1:], base_url)
+        return run_create(ai_words[1:], base_url, port)
     if ai_words[0] == "iterate":
-        return run_iterate(ai_words[1:], base_url)
+        return run_iterate(ai_words[1:], base_url, port)
     if ai_words[0] == "code":
-        return run_code(ai_words[1:], base_url)
+        return run_code(ai_words[1:], base_url, port)
     if ai_words[0] == "refactor":
-        return run_refactor(ai_words[1:], base_url)
+        return run_refactor(ai_words[1:], base_url, port)
     if ai_words[0] == "concentrate":
-        return run_concentrate(ai_words[1:], base_url)
+        return run_concentrate(ai_words[1:], base_url, port)
     return f"In order to be heard, you must start your response with \"speak\".\nError: unknown command {ai_words[0]}"
 
 def user_query(query, depth=3, base_url=None, port=1234):
@@ -1105,7 +1105,7 @@ def user_query(query, depth=3, base_url=None, port=1234):
         return
 
     add_response(think,words,sid)
-    answer = ai_command(cmd.split("|||")[0].split(" "), words.split("|||")[0])
+    answer = ai_command(cmd.split("|||")[0].split(" "), words.split("|||")[0], base_url, port)
     if answer is not None:
         if answer == GOAL:
             add_stimuli(f"MAKE PROGRESS: DO NOT RUN A GOAL COMMAND, RUN ANY OTHER COMMAND. If there are no goals, noop.", 8)
