@@ -137,7 +137,7 @@ def home():
     <html><head>
     <script language=javascript>
         function getEndPoint(ep) {{
-            website="http://192.168.68.79:8000/";
+            website="http://127.0.0.1:8000/";
             return website + ep;
         }}
         function fetchBoiler() {{
