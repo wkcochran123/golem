@@ -12,33 +12,55 @@ from datetime import datetime
 import os
 from pathlib import Path
 try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
+try:
     import RPi.GPIO as GPIO
 except ImportError:
     GPIO = None  # Will be checked when actually used
 
 INSTALLDIR = Path(os.path.join(os.environ["HOME"], "golem/raspberry_pi"))
     
-# LLM model constants
-SLOW = "qwq-32b"
-FAST = "gemma-3-4b-it-qat"
+# LLM model variables (set in main())
+global FAST, SLOW
+FAST = None
+SLOW = None
 
-def make_llm_request(messages, model=SLOW, base_url=None, port=1234):
+def make_llm_request(messages, model=None, base_url=None, port=1234):
     """Centralized LLM request handler with configurable formatting"""
-    if not base_url:
-        raise ValueError("LLM base URL must be provided")
+    if client:
+        # Use OpenAI client with DeepSeek API
+        try:
+            payload = {
+                "model": model,
+                "messages": messages,
+                "temperature": 0.3,
+                "max_tokens": 65536,  # 64k token limit for DeepSeek
+                "stream": False
+            }
+            response = client.chat.completions.create(**payload)
+            return response
+        except Exception as e:
+            print(f"OpenAI client error: {e}")
+            raise
+    else:
+        # Fall back to direct HTTP requests (original behavior)
+        if not base_url:
+            raise ValueError("LLM base URL must be provided")
+            
+        endpoint = "v1/chat/completions"
+        full_url = f"{base_url.rstrip('/')}:{port}/{endpoint}"
         
-    endpoint = "v1/chat/completions"
-    full_url = f"{base_url.rstrip('/')}:{port}/{endpoint}"
-    
-    payload = {
-        "model": model,
-        "messages": messages,
-        "temperature": 0.3,
-        "max_tokens": -1,
-        "stream": False
-    }
-    print(f"Making request to: {full_url}")
-    return requests.post(full_url, headers=headers, data=json.dumps(payload), timeout=3000)
+        payload = {
+            "model": model,
+            "messages": messages,
+            "temperature": 0.3,
+            "max_tokens": -1,  # Keep unlimited for direct requests
+            "stream": False
+        }
+        print(f"Making request to: {full_url}")
+        return requests.post(full_url, headers=headers, data=json.dumps(payload), timeout=3000)
 
 def oneshot_oracle(model, context, prompt):
     """Simplified to use make_llm_request"""
@@ -88,15 +110,19 @@ headers = {
 
 def oneshot_oracle(model, context, prompt, base_url, port=1234):
     """Simplified to use make_llm_request"""
-    packet = {
-        "model": model,
-        "messages": [
-            {"role": "system", "content": context},
-            {"role": "user", "content": prompt}
-        ]
-    }
-    response = make_llm_request(packet["messages"], model=model, base_url=base_url, port=port)
-    return response.json()["choices"][0]["message"]["content"]
+    messages = [
+        {"role": "system", "content": context},
+        {"role": "user", "content": prompt}
+    ]
+    
+    response = make_llm_request(messages, model=model, base_url=base_url, port=port)
+    
+    if client:
+        # Handle OpenAI client response
+        return response.choices[0].message.content
+    else:
+        # Handle direct HTTP response
+        return response.json()["choices"][0]["message"]["content"]
 
 def get_expert_instructions():
 
@@ -818,8 +844,10 @@ def run_curl(ai_words):
     os.chdir(str(INSTALLDIR))
     return result.stdout + result.stderr
 
-def run_ef(ai_words, base_url, port=1234):
+def run_ef(ai_words, base_url=None, port=1234):
     model = FAST if ai_words[0] == "FAST" else SLOW
+    if not model:
+        raise ValueError("Model name not configured - check FAST/SLOW settings")
     data = ""
     try:
         with open(INSTALLDIR / f"/inout/{ai_words[1]}", "r") as f:
@@ -831,13 +859,15 @@ def run_ef(ai_words, base_url, port=1234):
     return oneshot_oracle(model, f"You are an AI model trained to provide excellent feedback in the expertise of {expertise}.  Please read the prompt and provide expert, actionable, and concise feedback to the prompt. Please note the following things:  along with evaluation within the expertise, comment on complexity, apparent audiance, correctness, and scale. Please indicate perceived target demographic and venue of the sample. Be very harsh.  Make sure everything makes sense.  If anything at all does not make sense, penalize the work as being inconsistent.", data, base_url, port).split("</think>")[-1]
 
     
-def run_bs(ai_words):
+def run_bs(ai_words, base_url=None, port=1234):
     model = FAST if ai_words[0] == "FAST" else SLOW
+    if not model:
+        raise ValueError("Model name not configured - check FAST/SLOW settings")
     prompt = " ".join(ai_words[1:])
 
     return oneshot_oracle(model, f"You are an AI model trained to help brainstorm prompts.  Given the prompt below, give four or five possible approaches to achieving the goal of the prompt", prompt).split("</think>")[-1]
 
-def run_code(ai_words):
+def run_code(ai_words, base_url=None, port=1234):
     prompt = " ".join(ai_words[1:])
 
     context = '''
@@ -860,7 +890,7 @@ def run_code(ai_words):
 
     context = f"{context}\nCurrent date/time:{cdt()}"
 
-    code = oneshot_oracle(SLOW, context, prompt).split("</think>")[-1]
+    code = oneshot_oracle(SLOW, context, prompt, base_url, port).split("</think>")[-1]
 
     print (f"{ai_words[0]}")
     try:
@@ -870,7 +900,7 @@ def run_code(ai_words):
         return (f"Error: {e}")
     return "File written successfully"
 
-def run_concentrate(ai_words):
+def run_concentrate(ai_words, base_url=None, port=1234):
     prompt = " ".join(ai_words[0:])
 
     context = '''
@@ -878,10 +908,10 @@ def run_concentrate(ai_words):
     instructions on how to resolve the issue.
     '''
 
-    return oneshot_oracle(SLOW, context, prompt).split("</think>")[-1]
+    return oneshot_oracle(SLOW, context, prompt, base_url, port).split("</think>")[-1]
 
 
-def run_refactor(ai_words):
+def run_refactor(ai_words, base_url=None, port=1234):
     prompt = " ".join(ai_words[1:])
 
     context = '''
@@ -912,18 +942,20 @@ def run_refactor(ai_words):
         return f"ERROR: {e}"
 
     prompt = f"Prompt:{prompt}\nScript to refactor:\n{data}"
-    code = oneshot_oracle(SLOW, context, prompt).split("</think>")[-1]
+    code = oneshot_oracle(SLOW, context, prompt, base_url, port).split("</think>")[-1]
 
     try:
-        with open(f'/home/williamcochran/python/inout/{ai_words[0]}', 'w') as file:
+        with open(INSTALLDIR / "inout" / ai_words[0], 'w') as file:
             file.write(code)
     except Exception as e:
         return (f"Error: {e}")
     return "File written successfully"
 
 
-def run_create(ai_words):
+def run_create(ai_words, base_url=None, port=1234):
     model = FAST if ai_words[0] == "FAST" else SLOW
+    if not model:
+        raise ValueError("Model name not configured - check FAST/SLOW settings")
     prompt = " ".join(ai_words[2:])
     data = ""
 
@@ -937,8 +969,10 @@ def run_create(ai_words):
         return (f"Error: {e}")
     return "File written successfully"
 
-def run_iterate(ai_words):
+def run_iterate(ai_words, base_url, port=1234):
     model = FAST if ai_words[0] == "FAST" else SLOW
+    if not model:
+        raise ValueError("Model name not configured - check FAST/SLOW settings")
     prompt = " ".join(ai_words[3:])
     data = ""
     try:
@@ -957,7 +991,7 @@ def run_iterate(ai_words):
         return (f"Error: {e}")
     return "File written successfully"
 
-def ai_command(ai_words, cmd, base_url, port=1234):
+def ai_command(ai_words, cmd, base_url=None, port=1234):
     print (ai_words)
     if ai_words[0] == 'noop':
         return NOOP
@@ -982,17 +1016,17 @@ def ai_command(ai_words, cmd, base_url, port=1234):
     if ai_words[0] == "evaluate_file":
         return run_ef(ai_words[1:], base_url, port)
     if ai_words[0] == "brainstorm":
-        return run_bs(ai_words[1:], base_url)
+        return run_bs(ai_words[1:], base_url, port)
     if ai_words[0] == "create":
-        return run_create(ai_words[1:], base_url)
+        return run_create(ai_words[1:], base_url, port)
     if ai_words[0] == "iterate":
-        return run_iterate(ai_words[1:], base_url)
+        return run_iterate(ai_words[1:], base_url, port)
     if ai_words[0] == "code":
-        return run_code(ai_words[1:], base_url)
+        return run_code(ai_words[1:], base_url, port)
     if ai_words[0] == "refactor":
-        return run_refactor(ai_words[1:], base_url)
+        return run_refactor(ai_words[1:], base_url, port)
     if ai_words[0] == "concentrate":
-        return run_concentrate(ai_words[1:], base_url)
+        return run_concentrate(ai_words[1:], base_url, port)
     return f"In order to be heard, you must start your response with \"speak\".\nError: unknown command {ai_words[0]}"
 
 def user_query(query, depth=3, base_url=None, port=1234):
@@ -1042,7 +1076,10 @@ def user_query(query, depth=3, base_url=None, port=1234):
     # The LLM can fail to understand the mission and return a prediction-error
     #
     try:
-        words = response.json()["choices"][0]["message"]["content"];
+        if client:
+            words = response.choices[0].message.content
+        else:
+            words = response.json()["choices"][0]["message"]["content"]
     except Exception as e:
         return
     match = re.search(r"<think>\s*(.*?)\s*</think>\s*(.*)", words, re.DOTALL)
@@ -1068,12 +1105,12 @@ def user_query(query, depth=3, base_url=None, port=1234):
         return
 
     add_response(think,words,sid)
-    answer = ai_command(cmd.split("|||")[0].split(" "), words.split("|||")[0])
+    answer = ai_command(cmd.split("|||")[0].split(" "), words.split("|||")[0], base_url, port)
     if answer is not None:
         if answer == GOAL:
             add_stimuli(f"MAKE PROGRESS: DO NOT RUN A GOAL COMMAND, RUN ANY OTHER COMMAND. If there are no goals, noop.", 8)
         elif answer != NOOP:
-            add_stimuli(f"UPDATE GOALS: ONLY RUN A GOAL OR NOOP COMMAND. Review the chat log and telemtry. Compare against current goals.  If any milestone of a goal has been accomplished, append to that goal to indicate the milestone is complete, lack of progress or obstacle in the way.  If there is an obstacle, consider brainstorming or concentrating as the next action for the goal.  If the progress updates do not look meaningful, consider brainstorming or concentrating as the next action for the goal.  Be sure to include the entire goal when brainstorming or concentrating.  If there are no goals, simply noop", 3)
+            add_stimuli(f"UPDATE GOALS: ONLY RUN A GOAL OR NOOP COMMAND. Review the chat log, storage, and telemtry. Compare against current goals.  If any milestone of a goal has been accomplished, append to that goal to indicate the milestone is complete, lack of progress or obstacle in the way.  If there is an obstacle, consider brainstorming or concentrating as the next action for the goal.  If the progress updates do not look meaningful, consider brainstorming or concentrating as the next action for the goal.  Be sure to include the entire goal when brainstorming or concentrating.  If there are no goals, simply noop", 3)
         else:
             print (f"no updated stimulus added {answer}")
     if answer is not None:
@@ -1128,11 +1165,34 @@ def indicate_mode(a,b,c):
 def main(iter_count):
     parser = argparse.ArgumentParser()
     parser.add_argument("--prompt", type=str, help="Provide an initial prompt")
-    parser.add_argument("--roboturl", type=str, help="url of robot API")
+    parser.add_argument("--roboturl", type=str, help="url of robot API") 
     parser.add_argument("--llmurl", type=str, help="url of LLM")
     parser.add_argument("--llmport", type=int, default=1234, help="port of LLM API (default: 1234)")
-    global args
+    parser.add_argument("--apikey", type=str, help="filename containing API key for LLM")
+    parser.add_argument("--fast", type=str, default="gemma-3-4b-it-qat",
+                      help="model name for fast responses (default: gemma-3-4b-it-qat)")
+    parser.add_argument("--slow", type=str, default="qwq-32b",
+                      help="model name for slow/responsive responses (default: qwq-32b)")
+    global args, FAST, SLOW, client
     args = parser.parse_args()
+    
+    FAST = args.fast
+    SLOW = args.slow
+    print(f"Using models - FAST: {FAST}, SLOW: {SLOW}")
+    client = None
+    if args.apikey:
+        try:
+            with open(args.apikey, 'r') as f:
+                api_key = f.read().strip()
+            client = OpenAI(api_key=api_key, base_url=args.llmurl)
+            print(f"Using OpenAI client with API key from {args.apikey}")
+        except Exception as e:
+            print(f"Error initializing OpenAI client: {e}")
+            exit(1)
+    elif not args.llmurl:
+        print("llmurl must point to an LLM API")
+        exit()
+
     if args.prompt:
         add_stimuli(" ".join(args.prompt),1000)
         if args.roboturl:
@@ -1142,9 +1202,6 @@ def main(iter_count):
             except ImportError:
                 print("Error: --roboturl requires 'RPi' and 'picamera2' to be installed")
                 return
-    if not args.llmurl:
-        print("llmurl must point to an LLM API")
-        exit()
         
     base_url = args.llmurl
     print(f"Using LLM at: {base_url}")
