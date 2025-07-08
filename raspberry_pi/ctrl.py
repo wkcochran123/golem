@@ -24,7 +24,7 @@ def cdt():
 @app.route('/ask', methods=['POST'])
 def submit():
     prompt = request.get_json()['prompt']
-    commit_data("INSERT INTO stimuli (timestamp, prompt) VALUES ( ? , ? )",(cdt(),f"USER (never respond directly to USER prompts, always make a goal to accomplish the prompt.):{prompt}"))
+    commit_data("INSERT INTO stimuli (timestamp, prompt) VALUES ( ? , ? )",(cdt(),f"USER (never respond directly to USER prompts, always make a goal to accomplish the prompt. MAKE SURE YOU CAPTURE ALL OF THE INSTRUCTIONS AND NUANCE OF THE PROMPT. MAKE SURE ALL INFORMATION MAKES IT TO THE GOAL, NOT THE COMMENNT!):{prompt}"))
     return "Success"
 
 @app.route("/goals")

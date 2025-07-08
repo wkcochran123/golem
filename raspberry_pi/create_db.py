@@ -14,6 +14,7 @@ cur.execute("DROP TABLE IF EXISTS memories")
 cur.execute("DROP TABLE IF EXISTS memory_lookup")
 cur.execute("DROP TABLE IF EXISTS xpert_results")
 cur.execute("DROP TABLE IF EXISTS last_boiler")
+cur.execute("DROP TABLE IF EXISTS thoughts")
 
 cur.execute('''
             create table stimuli (
@@ -69,6 +70,14 @@ cur.execute('''
 cur.execute('''
             insert into last_boiler(data) values ("starting")
             ''')
+
+cur.execute('''
+            create table thoughts (
+            tid integer primary key,
+            prompt text not null,
+            data text not null
+            )''')
+
 
 conn.commit()
 conn.close()

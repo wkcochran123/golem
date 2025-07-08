@@ -97,6 +97,8 @@ SPEAK = "SPEAK"
 #model = "lmstudio-community/DeepSeek-R1-Distill-Qwen-7B"
 #model = "DavidAU/reka-flash-3-21b-reasoning-uncensored-max-neo-imatrix"
 #model = "DavidAU/llama-3.2-8x3b-moe-dark-champion-instruct-uncensored-abliterated-18.4b"
+#SLOW = "qwq-32b"
+#FAST = "gemma-3-4b-it-qat"
 repeat = 1
 has_think = True
 
@@ -306,6 +308,16 @@ def get_expert_instructions():
             file read <filename>
                 This will read the file and place the contents in the telemetry.
                 
+            bash <cmd> <param> <param> ...
+                Run a bash script.  The script must be a file in your file list.
+
+                This does not run bash commands. bash ls will fail because ls is _not_ in your file list.
+                In order to use base, write a script with code, making sure you tell it to write it in bash.
+                For instance, in order to install a program, you could do something like this
+
+                code package_installer.sh Please write a shell script to install my package.
+                bash package_installer.sh
+
             simple_python <cmd> <param> <param> ...
                 This is a stripped down python that allows for easy integration with outputs from LLMs.
                 As such, it is missing a ton of functionality that you would normally have with python.
@@ -471,23 +483,10 @@ def get_expert_instructions():
 
         SOFTWARE DEPENDENCIES:
         As a robot that builds tools to solve problems, the cortex will invariably need to have software
-        installed.  As a safety feature, rather than letting the cortex directly install software, the
-        cortex can request software by maintaining a file called: NEEDED_PACKAGES.
+        installed.  bash has been provided and the robot runs as a user that is in sudoers.  If you notice
+        a problem, please indicate in the file called BUG_LIST.
 
-        In this file, simply indicate need by the following three fields:
-
-            Package name: <package name>
-            Reason for install: <explanation of what the package does and how it advances your goals>
-            Install instructions:  <explanation of how to install the package on a Raspberry Pi 4b.
-
-        The user will also monitor this file from time to time in order to install necessary dependencies.
-        If the user encounters a problem, they will annotate the record with a problem field:
-
-            Problem: <issue run into while installing>
-
-        If you notice a problem in the file, please add below the problem:
-
-            Resolution: <how to fix>
+        Anything that gets in your way our you find frustrating, please make sure it ends up in BUG_LIST.
 
         TIMESTAMPS:
         A word about timestamps.  The environment of the robot is ever changing and all possible stimuli. The
@@ -546,6 +545,18 @@ def get_current_goals():
         answer += f"  Goal {row[0]}: {row[2]}  [Added {row[3]}]\n\n"
     if not printed:
         answer = answer + " No Current Goals! Feel free to set one"
+    conn.close()
+    return answer
+
+def get_thoughts(limit=100):
+    conn = sqlite3.connect(INSTALLDIR / "dommy.sqlite", timeout=5.0)
+    cur = conn.cursor()
+
+    cur.execute("SELECT prompt,data FROM thoughts order by tid limit ?", (limit,))
+    answer = []
+    rows = cur.fetchall()
+    for row in rows:
+        answer = answer + [{"role": "user", "content": row[0]}] + [{"role": "assistant", "content": row[1]}]
     conn.close()
     return answer
 
@@ -827,6 +838,18 @@ def run_file(words,cmd):
     if words[0] == "list":
         return run_file_list()
 
+def run_bash(ai_words):
+    ai_words[0] = str(INSTALLDIR / ai_words[0])
+    cmd = " ".join(['bash'] + ai_words).split(" ")
+    cmd = [x for x in cmd if x is not None and len (x)>0]
+    print (f"{cmd}");
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=300)
+    except Exception as e:
+        return f"ERROR: {e}"
+    output = result.stdout + result.stderr
+    return output;
+
 def run_python(ai_words):
     script_path = str(INSTALLDIR / "inout" / ai_words[0])
     cmd = ['python', script_path] + ai_words[1:]
@@ -856,7 +879,9 @@ def run_ef(ai_words, base_url=None, port=1234):
         return f"ERROR: {e}"
     expertise = " ".join(ai_words[2:])
 
-    return oneshot_oracle(model, f"You are an AI model trained to provide excellent feedback in the expertise of {expertise}.  Please read the prompt and provide expert, actionable, and concise feedback to the prompt. Please note the following things:  along with evaluation within the expertise, comment on complexity, apparent audiance, correctness, and scale. Please indicate perceived target demographic and venue of the sample. Be very harsh.  Make sure everything makes sense.  If anything at all does not make sense, penalize the work as being inconsistent.", data, base_url, port).split("</think>")[-1]
+    response = oneshot_oracle(model, f"You are an AI model trained to provide excellent feedback in the expertise of {expertise}.  Please read the prompt and provide expert, actionable, and concise feedback to the prompt. Please note the following things:  along with evaluation within the expertise, comment on complexity, apparent audiance, correctness, and scale. Please indicate perceived target demographic and venue of the sample. Be very harsh.  Make sure everything makes sense.  If anything at all does not make sense, penalize the work as being inconsistent.", data).split("</think>")[-1]
+    commit_data (f"insert into thoughts (prompt,data) values(?,?)",(f"Review of file {ai_words[1]} from {expertise}",response))
+    return response
 
     
 def run_bs(ai_words, base_url=None, port=1234):
@@ -865,7 +890,9 @@ def run_bs(ai_words, base_url=None, port=1234):
         raise ValueError("Model name not configured - check FAST/SLOW settings")
     prompt = " ".join(ai_words[1:])
 
-    return oneshot_oracle(model, f"You are an AI model trained to help brainstorm prompts.  Given the prompt below, give four or five possible approaches to achieving the goal of the prompt", prompt).split("</think>")[-1]
+    response = oneshot_oracle(model, f"You are an AI model trained to help brainstorm prompts.  Given the prompt below, give four or five possible approaches to achieving the goal of the prompt", prompt,get_thoughts()).split("</think>")[-1]
+    commit_data ("insert into thoughts (prompt,data) values(?,?)",(prompt,response))
+    return response
 
 def run_code(ai_words, base_url=None, port=1234):
     prompt = " ".join(ai_words[1:])
@@ -908,7 +935,9 @@ def run_concentrate(ai_words, base_url=None, port=1234):
     instructions on how to resolve the issue.
     '''
 
-    return oneshot_oracle(SLOW, context, prompt, base_url, port).split("</think>")[-1]
+    response = oneshot_oracle(SLOW, context, prompt, get_thoughts()).split("</think>")[-1]
+    commit_data ("insert into thoughts (prompt,data) values(?,?)",(prompt,response))
+    return response
 
 
 def run_refactor(ai_words, base_url=None, port=1234):
@@ -1009,6 +1038,8 @@ def ai_command(ai_words, cmd, base_url=None, port=1234):
         return run_move(ai_words[1:])
     if ai_words[0] == "file":
         return run_file(ai_words[1:], cmd)
+    if ai_words[0] == "bash":
+        return run_bash (ai_words[1:])
     if ai_words[0] == "simple_python":
         return run_python (ai_words[1:])
     if ai_words[0] == "simple_curl":
