@@ -28,24 +28,42 @@ FAST = None
 SLOW = None
 
 def make_llm_request(messages, model=None, base_url=None, port=1234):
-    """Centralized LLM request handler with configurable formatting"""
+    """Centralized LLM request handler with robust error handling and full prompt logging"""
+    max_retries = 3
+    retry_delay = 300  # 5 minutes in seconds
+    
+    def print_full_prompt(messages):
+        """Helper to print the complete prompt to stderr"""
+        print("\n=== FULL PROMPT DUMP ===", file=sys.stderr)
+        print(f"Total messages: {len(messages)}", file=sys.stderr)
+        total_chars = 0
+        for i, msg in enumerate(messages):
+            content = msg.get('content', '')
+            role = msg.get('role', 'unknown')
+            chars = len(content)
+            total_chars += chars
+            print(f"\n--- Message {i} ({role}, {chars} chars) ---", file=sys.stderr)
+            print(content, file=sys.stderr)
+        print(f"\n=== TOTAL PROMPT SIZE: {total_chars} characters ===", file=sys.stderr)
+    
     if client:
-        # Use OpenAI client with DeepSeek API
+        # OpenAI client path
         try:
             payload = {
                 "model": model,
                 "messages": messages,
                 "temperature": 0.3,
-                "max_tokens": 65536,  # 64k token limit for DeepSeek
+                "max_tokens": 65536,
                 "stream": False
             }
             response = client.chat.completions.create(**payload)
             return response
         except Exception as e:
-            print(f"OpenAI client error: {e}")
-            raise
+            print(f"OpenAI client error: {e}", file=sys.stderr)
+            print_full_prompt(messages)
+            sys.exit(1)
     else:
-        # Fall back to direct HTTP requests (original behavior)
+        # Direct HTTP request path
         if not base_url:
             raise ValueError("LLM base URL must be provided")
             
@@ -56,11 +74,40 @@ def make_llm_request(messages, model=None, base_url=None, port=1234):
             "model": model,
             "messages": messages,
             "temperature": 0.3,
-            "max_tokens": -1,  # Keep unlimited for direct requests
+            "max_tokens": -1,
             "stream": False
         }
-        print(f"Making request to: {full_url}")
-        return requests.post(full_url, headers=headers, data=json.dumps(payload), timeout=3000)
+        
+        request_data = {
+            "url": full_url,
+            "headers": headers,
+            "json": payload,
+            "timeout": 300
+        }
+        
+        for attempt in range(max_retries):
+            try:
+                print(f"Attempt {attempt + 1}/{max_retries} to {full_url}", file=sys.stderr)
+                response = requests.post(**request_data)
+                response.raise_for_status()
+                return response
+                
+            except requests.exceptions.Timeout:
+                if attempt < max_retries - 1:
+                    print(f"Timeout occurred, waiting {retry_delay} seconds before retry...", file=sys.stderr)
+                    time.sleep(retry_delay)
+                    continue
+                print("Max retries reached for timeout", file=sys.stderr)
+                print_full_prompt(messages)
+                sys.exit(1)
+                
+            except requests.exceptions.RequestException as e:
+                print(f"Fatal request error: {e}", file=sys.stderr)
+                print("\nRequest details:", file=sys.stderr)
+                print(f"URL: {full_url}", file=sys.stderr)
+                print(f"Headers: {headers}", file=sys.stderr)
+                print_full_prompt(messages)
+                sys.exit(1)
 
 def oneshot_oracle(model, context, prompt):
     """Simplified to use make_llm_request"""
@@ -1112,6 +1159,9 @@ def user_query(query, depth=3, base_url=None, port=1234):
         else:
             words = response.json()["choices"][0]["message"]["content"]
     except Exception as e:
+        print(f"Failed to parse LLM response: {e}", file=sys.stderr)
+        print("Raw response:", file=sys.stderr)
+        print(response.text if hasattr(response, 'text') else str(response), file=sys.stderr)
         return
     match = re.search(r"<think>\s*(.*?)\s*</think>\s*(.*)", words, re.DOTALL)
 
