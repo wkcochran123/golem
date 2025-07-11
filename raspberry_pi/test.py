@@ -6,6 +6,7 @@ def test_triple_value (command_line, sql_statement, value):
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, shell=False, timeout=300)
     except Exception as e:
+        subprocess.run(['rm', '-f', 'dommy.sqlite'])
         return f"ERROR: {e}"
 
     conn = sqlite3.connect("dommy.sqlite", timeout=5.0)
@@ -19,6 +20,8 @@ def test_triple_value (command_line, sql_statement, value):
         break;
     if str(value) != str(answer):
         return f"ERROR: Expected {value}, found {answer}"
+
+    subprocess.run(['rm', '-f', 'dommy.sqlite'])
     return "Passed"
 
 
