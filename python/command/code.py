@@ -1,4 +1,4 @@
-class Noop:
+class Code:
     """
     NOOP
 

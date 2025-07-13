@@ -1,4 +1,4 @@
-class Noop:
+class File:
     """
     NOOP
 

@@ -1,6 +1,6 @@
-class Noop:
+class Create:
     """
-    NOOP
+    N
 
     Tell the robot to do nothing
     """

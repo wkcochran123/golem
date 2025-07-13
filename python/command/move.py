@@ -1,4 +1,4 @@
-class Noop:
+class Move:
     """
     NOOP
 

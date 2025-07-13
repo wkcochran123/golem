@@ -1,4 +1,4 @@
-class Noop:
+class Evaluate:
     """
     NOOP
 
@@ -9,7 +9,7 @@ class Noop:
         pass
 
     @staticmethod
-    def action(goal_id):
+    def action(command,goal_id):
         pass
 
     @staticmethod

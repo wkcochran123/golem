@@ -1,6 +1,4 @@
-from db import DB,Prefs
-
-class Goal:
+class BrainStorm:
     """
     NOOP
 
@@ -10,27 +8,13 @@ class Goal:
     def __init__(self):
         pass
 
+    @staticmethod
+    def action(command,goal_id):
+        pass
 
     @staticmethod
     def get_token():
-        return "goal"
-
-    @staticmethod
-    def run_new(command):
-        goal = " ".join(command[1:])
-        test_script = command[0]
-        goal = f"{goal}. But before you get started, Brainstorm about the different ways to achieve the goal, then choose one and concentrate on it."
-        DB.commit ("INSERT INTO goals (progress,timestamp,description) VALUES ( ? , ? , ?)",(0,DB.cdt(),goal))
-
-    @staticmethod
-    def action(command,goal_id):
-        command_parts = command.split(" ")
-        if command_parts[1] == "new":
-            return Goal.run_new(command_parts[2:])
-        if command_parts[1] == "next_step":
-            return Goal.run_next_step(command_parts[2:])
-        if command_parts[1] == "complete":
-            return Goal.run_complete(command_parts[2:])
+        "goal"
 
     @staticmethod
     def context_description():

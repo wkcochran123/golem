@@ -1,16 +1,17 @@
-import noop
-import goal
-import file
-import speak
-import move
-import bash_script
-import python_script
-import download
-import evaluate
-import concentrate
-import iterate
-import code
-import refactor
+from .bash_script import BashScript
+from .code import Code
+from .concentrate import Concentrate
+from .download import Download
+from .evaluate import Evaluate
+from .file import File
+from .goal import Goal
+from .iterate import Iterate
+from .look import Look
+from .move import Move
+from .noop import Noop
+from .brain_storm import BrainStorm
+from .python_script import PythonScript
+from .speak import Speak
 
 class CommandManager:
     """
@@ -23,44 +24,42 @@ class CommandManager:
         self.SUCCESS = "Command executed successfully."
         self.commands = [
                 Noop,
-                
                 Goal,
-                File,
-                
-                Look,
-                Speak,
-                Move,
-
+#                File,
+#                Look,
+#                Speak,
+#                Move,
                 BashScript,
-                PythonScript,
-                Download,
-                Evaluate,
-                BrainStorm,
-                Concentrate,
-                Create,
-                Iterate,
-                Code,
-                Refactor,
+#                PythonScript,
+#                Download,
+#                Evaluate,
+#                BrainStorm,
+#                Concentrate,
+#                Iterate,
+#                Code,
                 ]
 
     def run_command(self,full_command,goal_id):
-        command = full_command.split("|||")[0]
+        command = full_command.strip().split("|||")[0]
         first_word = command.split(" ")[0]
         for cmd in self.commands:
-            if cmd.get_token == first_word:
-                return cmd.action(command_parts[0],goal_id)
+            print (f"Checking {first_word} against {cmd} and {cmd.get_token()}");
+            if cmd.get_token() == first_word:
+                print (f"Dispatching");
+                return cmd.action(command,goal_id)
+        return f"ERROR: Unknown command {first_word}"
 
-    def enable_command(self.command):
-        if command not in commands:
-            commands.append(command)
+    def enable_command(self,command):
+        if command not in self.commands:
+            self.commands.append(command)
 
-    def disable_command(command):
-        if command in commands:
-            commands = [cmd for cmd in commands if cmd != command]
+    def disable_command(self,command):
+        if command in self.commands:
+            self.commands = [cmd for cmd in self.commands if cmd != command]
 
-    def get_instructions():
+    def get_instructions(self):
         command_list = ""
-        for command in commands:
+        for command in self.commands:
             command_list = f"{command_list}\n{command.context_description()}"
         overall_instructions = """
         Robot commands take the form:
