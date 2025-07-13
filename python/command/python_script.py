@@ -14,7 +14,7 @@ class PythonScript:
 
     @staticmethod
     def get_token():
-        "noop"
+        return "python_script"
 
     @staticmethod
     def context_description():

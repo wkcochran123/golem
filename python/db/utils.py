@@ -1,4 +1,5 @@
 import sqlite3
+import os
 from datetime import datetime
 
 class DB:
@@ -61,8 +62,9 @@ class DB:
 
         DB.DB_PATH = sqlite_bootstrap + "/core.sqlite";
         try:
-            os.stat(sqlite_path)
-        except Exception:
+            os.stat(DB.DB_PATH)
+        except Exception as e:
+            print (f"No database found, building.")
             DB.build_database(sqlite_bootstrap)
 
         DB.PREFS = Prefs()

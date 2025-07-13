@@ -14,7 +14,7 @@ class File:
 
     @staticmethod
     def get_token():
-        "noop"
+        return "file"
 
     @staticmethod
     def context_description():

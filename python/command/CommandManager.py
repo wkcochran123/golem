@@ -9,7 +9,7 @@ from .iterate import Iterate
 from .look import Look
 from .move import Move
 from .noop import Noop
-from .brain_storm import BrainStorm
+from .brainstorm import BrainStorm
 from .python_script import PythonScript
 from .speak import Speak
 
@@ -42,8 +42,8 @@ class CommandManager:
                 Code,
                 ]
         self.commands = []
-        command_list = DB.PREFS.get("command manager list","noop")
-        print (f"Got a command_list of: {command_list}")
+        cmd_list = [x.get_token() for x in self.all_commands]
+        command_list = DB.PREFS.get("command manager list",",".join(cmd_list))
         for x in command_list.split(","):
             self.commands.append(self.find_command(x))
 
@@ -76,10 +76,8 @@ class CommandManager:
             self.commands.append(command)
         self._write_prefs()
 
-    def disable_command(self,cmd):
-        command = self.find_command(cmd)
-        if command in self.commands:
-            self.commands = [cmd for cmd in self.commands if cmd != command]
+    def disable_command(self,command):
+        self.commands = [cmd for cmd in self.commands if cmd.get_token() != command]
         self._write_prefs()
 
     def get_instructions(self):

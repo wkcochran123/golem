@@ -14,7 +14,7 @@ class Move:
 
     @staticmethod
     def get_token():
-        "noop"
+        return "move"
 
     @staticmethod
     def context_description():

@@ -14,7 +14,7 @@ class Look:
 
     @staticmethod
     def get_token():
-        "noop"
+        return "look"
 
     @staticmethod
     def context_description():

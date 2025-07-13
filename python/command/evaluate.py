@@ -14,7 +14,7 @@ class Evaluate:
 
     @staticmethod
     def get_token():
-        "noop"
+        return "evaluate"
 
     @staticmethod
     def context_description():

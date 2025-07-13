@@ -14,7 +14,7 @@ class Code:
 
     @staticmethod
     def get_token():
-        "noop"
+        return "code"
 
     @staticmethod
     def context_description():

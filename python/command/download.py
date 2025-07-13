@@ -14,7 +14,7 @@ class Download:
 
     @staticmethod
     def get_token():
-        "noop"
+        return "download"
 
     @staticmethod
     def context_description():

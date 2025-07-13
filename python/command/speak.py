@@ -14,7 +14,7 @@ class Speak:
 
     @staticmethod
     def get_token():
-        "noop"
+        return "speak"
 
     @staticmethod
     def context_description():

@@ -14,7 +14,7 @@ class BrainStorm:
 
     @staticmethod
     def get_token():
-        "goal"
+        return "brainstorm"
 
     @staticmethod
     def context_description():

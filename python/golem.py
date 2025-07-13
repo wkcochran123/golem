@@ -37,5 +37,8 @@ def main ():
         cm.enable_command(args.enable_command)
         exit(0)
 
+    if args.disable_command is not None:
+        cm.disable_command(args.disable_command)
+        exit(0)
 if __name__ == "__main__":
         main()

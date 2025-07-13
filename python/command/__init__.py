@@ -1,5 +1,5 @@
 from .bash_script import BashScript
-from .brain_storm import BrainStorm
+from .brainstorm import BrainStorm
 from .code import Code
 from .CommandManager import CommandManager
 from .concentrate import Concentrate

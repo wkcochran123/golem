@@ -14,7 +14,7 @@ class Concentrate:
 
     @staticmethod
     def get_token():
-        "noop"
+        return "concentrate"
 
     @staticmethod
     def context_description():
