@@ -13,7 +13,10 @@ class Prefs:
         for row in DB.select("select key, value from preferences", ()):
             self._preferences[row[0]] = row[1]
         
-    def get (pref):
+    def get (pref,default=None):
+        if pref not in self._preferences:
+            value = input ("Unknown preference. Please input value [{default}]:")
+            set(pref,value)
         return self._preferences[pref]
 
     def set (pref,value):
