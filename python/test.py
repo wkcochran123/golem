@@ -2,7 +2,7 @@ import subprocess
 import sqlite3
 
 def test_triple_value (command_line, sql_statement, value):
-    cmd = ['python','brain.py']+command_line
+    cmd = ['python','golem.py']+command_line
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, shell=False, timeout=300)
     except Exception as e:

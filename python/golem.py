@@ -15,6 +15,9 @@ def main ():
 
     DB.stat_db(args.root_directory)
     prefs = Prefs()
+    inout_path = prefs.get("inout_directory",args.root_directory+"/inout")
+    prefs.set("inout_directory",inout_path)
+    os.makedirs(prefs.get("inout_directory"), exist_ok=True)
     if args.reset:
         print("Resetting system...")
         DB.reset()
@@ -30,7 +33,7 @@ def main ():
 
     cm = CommandManager()
     if args.test_command is not None:
-        cm.run_command(args.test_command,0)
+        print(cm.run_command(args.test_command))
         exit(0)
 
     if args.enable_command is not None:

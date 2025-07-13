@@ -58,10 +58,7 @@ class CommandManager:
         first_word = command.split(" ")[0]
         for cmd in self.commands:
             if cmd.get_token() == first_word:
-                result = cmd.action(command)
-                if result == cmd.get_token():
-                    return this.SUCCESS
-                return result
+                return cmd.action(command)
         return f"ERROR: Unknown command {first_word}"
 
     def _write_prefs(self):

@@ -166,9 +166,7 @@ class Prefs:
         
     def get (self,pref,default=None):
         if pref not in self._preferences:
-            value = input (f"Unknown preference {pref}. Please input value [{default}]:")
-            if value == "":
-                value = default
+            value = default if default is not None else input (f"Unknown preference {pref} and no default value was provided. Please input a value:")
             self.set(pref,value)
         return self._preferences[pref]
 

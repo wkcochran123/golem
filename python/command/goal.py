@@ -1,4 +1,6 @@
 from db import DB,Prefs
+import subprocess
+
 
 class Goal:
     """
@@ -20,43 +22,47 @@ class Goal:
         goal = " ".join(command[1:])
         test_script = command[0]
         goal = f"{goal}. But before you get started, Brainstorm about the different ways to achieve the goal, then choose one and concentrate on it."
-        DB.commit ("INSERT INTO goals (progress,timestamp,description) VALUES ( ? , ? , ?)",(0,DB.cdt(),goal))
+        DB.commit ("INSERT INTO goals (progress,test_script,timestamp,description) VALUES ( ? , ? , ? , ?)",(0,test_script,DB.cdt(),goal))
+        return Goal.get_token()
 
-    def _run_test(command):
-        gid = command[0]
+    @staticmethod
+    def _run_test(gid):
         script_to_run = DB.single_value("select test_script from goals where gid = ?",(gid,))
-        full_command = DB.PREFS["inout_directory"]+"/"+script_to_run
+        full_command = DB.PREFS.get("inout_directory")+"/"+script_to_run
+        print (full_command)
         result = None
         try:
-            result = subprocess.run(['python',full_command], capture_output=True, text=True, shell=True, timeout=300)
+            result = subprocess.run(['python',full_command], capture_output=True, text=True, timeout=20)
         except Exception as e:
             return f"{script_to_run} failed: ERROR: {e}. Please understand why {script_to_run} is failing and debug the script"
         output = result.stdout + result.stderr
         if output.strip() != "All tests pass.":
             return f"{script_to_run} has failing tests. The output of the script is:\n{output}"
-        return get_token()
+        return Goal.get_token()
 
+    @staticmethod
     def run_next_step(command):
-        step_one = _run_test(command)
-        if step_one != get_token():
-            return step_one
         gid = command[0]
+        step_one = Goal._run_test(gid)
+        if step_one != Goal.get_token():
+            return step_one
         script = command[1]
         prompt = " ".join(command[2:])
         current_description = DB.single_value("select description from goals where gid = ?", (gid,))
-        new_description = f"{current_description.strip()}\no {prompt.strip()}\n"
-        DB.commit ("UPDATE goals SET description = ? , test_script = ? , WHERE gid = ?",(new_description,script,gid))
-        return get_token()
-
-    def run_complete(command):
-        step_one = _run_test(command)
-        if step_one != get_token():
-            return step_one
-        DB.commit ("UPDATE goals SET progress = 1 WHERE gid = ?",(command[0]))
-        return get_token()
+        new_description = f"{current_description.strip()}\no [{DB.cdt()}] {prompt.strip()}\n"
+        DB.commit ("UPDATE goals SET description = ? , test_script = ? WHERE gid = ?",(new_description,script,gid))
+        return Goal.get_token()
 
     @staticmethod
-    def action(command,goal_id):
+    def run_complete(command):
+        step_one = Goal._run_test(command[0])
+        if step_one != Goal.get_token():
+            return step_one
+        DB.commit ("UPDATE goals SET progress = 1 WHERE gid = ?",(command[0]))
+        return Goal.get_token()
+
+    @staticmethod
+    def action(command):
         command_parts = command.split(" ")
         if command_parts[1] == "new":
             return Goal.run_new(command_parts[2:])
