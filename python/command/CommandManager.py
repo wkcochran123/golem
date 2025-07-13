@@ -13,6 +13,8 @@ from .brain_storm import BrainStorm
 from .python_script import PythonScript
 from .speak import Speak
 
+from db import DB,Prefs
+
 class CommandManager:
     """
     CommandManager
@@ -22,40 +24,63 @@ class CommandManager:
 
     def __init__ (self):
         self.SUCCESS = "Command executed successfully."
-        self.commands = [
+        # This needs to be a file scan.
+        self.all_commands = [
                 Noop,
                 Goal,
-#                File,
-#                Look,
-#                Speak,
-#                Move,
+                File,
+                Look,
+                Speak,
+                Move,
                 BashScript,
-#                PythonScript,
-#                Download,
-#                Evaluate,
-#                BrainStorm,
-#                Concentrate,
-#                Iterate,
-#                Code,
+                PythonScript,
+                Download,
+                Evaluate,
+                BrainStorm,
+                Concentrate,
+                Iterate,
+                Code,
                 ]
+        self.commands = []
+        command_list = DB.PREFS.get("command manager list","noop")
+        print (f"Got a command_list of: {command_list}")
+        for x in command_list.split(","):
+            self.commands.append(self.find_command(x))
 
-    def run_command(self,full_command,goal_id):
+    def find_command(self,command_text):
+        for y in self.all_commands:
+            if y.get_token() == command_text:
+                return y
+        return None
+
+    def run_command(self,full_command):
         command = full_command.strip().split("|||")[0]
         first_word = command.split(" ")[0]
         for cmd in self.commands:
-            print (f"Checking {first_word} against {cmd} and {cmd.get_token()}");
             if cmd.get_token() == first_word:
-                print (f"Dispatching");
-                return cmd.action(command,goal_id)
+                result = cmd.action(command)
+                if result == cmd.get_token():
+                    return this.SUCCESS
+                return result
         return f"ERROR: Unknown command {first_word}"
 
-    def enable_command(self,command):
+    def _write_prefs(self):
+        pref_list = []
+        for x in self.commands:
+            pref_list.append(x.get_token())
+        DB.PREFS.set("command manager list",",".join(pref_list))
+
+    def enable_command(self,cmd):
+        command = self.find_command(cmd)
         if command not in self.commands:
             self.commands.append(command)
+        self._write_prefs()
 
-    def disable_command(self,command):
+    def disable_command(self,cmd):
+        command = self.find_command(cmd)
         if command in self.commands:
             self.commands = [cmd for cmd in self.commands if cmd != command]
+        self._write_prefs()
 
     def get_instructions(self):
         command_list = ""

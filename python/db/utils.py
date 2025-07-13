@@ -6,6 +6,7 @@ class DB:
         DB helper class
     """
     DB_PATH = None
+    PREFS = None
 
     def __init__ (self):
         pass
@@ -21,6 +22,19 @@ class DB:
         conn.commit()
         conn.close()
 
+    @staticmethod
+    def single_value(query,values=()):
+        conn = sqlite3.connect(DB.DB_PATH, timeout=5.0)
+        cur = conn.cursor()
+        cur.execute(query,values)
+        rows = cur.fetchall()
+        for row in rows:
+            conn.commit()
+            conn.close()
+            return row[0]
+        conn.commit()
+        conn.close()
+        return None
 
     @staticmethod
     def select (query,values=()):
@@ -50,6 +64,8 @@ class DB:
             os.stat(sqlite_path)
         except Exception:
             DB.build_database(sqlite_bootstrap)
+
+        DB.PREFS = Prefs()
 
     @staticmethod
     def build_database(path):
@@ -90,6 +106,7 @@ class DB:
                     create table goals (
                     gid integer primary key,
                     progress float not null,
+                    test_script text not null,
                     timestamp text not null,
                     description text not null
                     )''')
@@ -134,3 +151,26 @@ class DB:
         conn.commit()
         conn.close()
 
+
+class Prefs:
+    """
+        Prefs class used to configure everything.  Use this to store magic numbers,
+        meta parameters, etc.
+    """
+    def __init__ (self):
+        self._preferences = dict()
+        for row in DB.select("select key, value from preferences", ()):
+            self._preferences[row[0]] = row[1]
+        
+    def get (self,pref,default=None):
+        if pref not in self._preferences:
+            value = input (f"Unknown preference {pref}. Please input value [{default}]:")
+            if value == "":
+                value = default
+            self.set(pref,value)
+        return self._preferences[pref]
+
+    def set (self,pref,value):
+        DB.commit ("DELETE FROM preferences WHERE key = ?",(pref,))
+        DB.commit ("INSERT INTO preferences (key,value) VALUES ( ? , ?)", (pref,value))
+        self._preferences[pref] = value
