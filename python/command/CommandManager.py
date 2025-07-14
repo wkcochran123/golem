@@ -58,7 +58,9 @@ class CommandManager:
         first_word = command.split(" ")[0]
         for cmd in self.commands:
             if cmd.get_token() == first_word:
-                return cmd.action(command)
+                result = cmd.action(command)
+                DB.commit("INSERT INTO robot_console (command,result,timestamp) VALUES (?,?,?)", (command, result, DB.cdt()))
+                return result
         return f"ERROR: Unknown command {first_word}"
 
     def _write_prefs(self):

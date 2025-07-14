@@ -49,6 +49,26 @@ class DB:
         conn.close()
 
     @staticmethod
+    def queue_prompt(prompt,context="robot"):
+        DB.commit("INSERT INTO stimuli (timestamp,prompt,context) VALUES(?,?,?)",(DB.cdt(),prompt.context))
+
+    @staticmethod
+    def pop_prompt():
+        conn = sqlite3.connect(DB.DB_PATH, timeout=5.0)
+        cur = conn.cursor()
+        cur.execute("select prompt,context from stimuli where sid not in (select gid from response)")
+        rows = cur.fetchall()
+        prompt = None
+        context = None
+        for row in rows:
+            prompt = row[0]
+            context = row[1]
+            break
+        conn.commit()
+        conn.close()
+        return (prompt,context)
+
+    @staticmethod
     def reset ():
         os.remove(DB.DB_PATH)
         stat_db(None)
@@ -78,7 +98,7 @@ class DB:
         cur.execute("DROP TABLE IF EXISTS response")
         cur.execute("DROP TABLE IF EXISTS memories")
         cur.execute("DROP TABLE IF EXISTS memory_lookup")
-        cur.execute("DROP TABLE IF EXISTS xpert_results")
+        cur.execute("DROP TABLE IF EXISTS robot_console")
         cur.execute("DROP TABLE IF EXISTS last_boiler")
         cur.execute("DROP TABLE IF EXISTS thoughts")
         cur.execute("DROP TABLE IF EXISTS preferences")
@@ -92,7 +112,8 @@ class DB:
                     create table stimuli (
                     sid integer primary key,
                     timestamp text not null,
-                    prompt text not null
+                    prompt text not null,
+                    context text not null
                     )''')
 
         cur.execute('''
@@ -127,7 +148,7 @@ class DB:
                     )''')
 
         cur.execute('''
-                    create table xpert_results (
+                    create table robot_console (
                     xid integer primary key,
                     command text not null,
                     result text not null,
@@ -150,6 +171,10 @@ class DB:
                     prompt text not null,
                     data text not null
                     )''')
+        cur.execute("insert into preferences (key,value) values(?,?)",("context types","robot,coder"))
+        cur.execute("insert into preferences (key,value) values(?,?)",("robot generators","robot_instructions,robot_console"))
+        cur.execute("insert into preferences (key,value) values(?,?)",("coder generators","robot_console"))
+
         conn.commit()
         conn.close()
 

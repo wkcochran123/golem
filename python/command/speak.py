@@ -9,7 +9,25 @@ class Speak:
         pass
 
     @staticmethod
-    def action(command,goal_id):
+    def action(command):
+        words = command.split(" ")[1:]
+        text = ' '.join(words)
+        params = {'text': text}
+        speak_url = DB.PREFS.get("speak url")
+
+        total_url = requests.Request('GET', get_mac_url("speak",8001), params=params).prepare().url
+        response = requests.get(total_url)
+
+        if response.status_code == 200:
+            with open('/tmp/speech.m4a', 'wb') as f:
+                f.write(response.content)
+            subprocess.run(['ffplay', '-nodisp', '-autoexit', '/tmp/speech.m4a'])
+        else:
+            print(f"Error from TTS service: {response.status_code}")
+
+        return SPEAK
+
+
         pass
 
     @staticmethod

@@ -70,6 +70,7 @@ class Goal:
             return Goal.run_next_step(command_parts[2:])
         if command_parts[1] == "complete":
             return Goal.run_complete(command_parts[2:])
+        return f"ERROR Unknown file subcommand: {command_parts[1]}"
 
     @staticmethod
     def context_description():
@@ -92,7 +93,6 @@ class Goal:
         create a goal using the goal new.  As you make progress, you can indicate the progress
         by goal next_step.  Finally, when you believe the goal is complete, calling
         goal complete will resolve the goal.  Here are the commands in detail:
-
 
             goal new <test_script> <goal>
 

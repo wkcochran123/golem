@@ -1,3 +1,5 @@
+import subprocess
+from db import DB,Prefs
 
 class BashScript:
     """
@@ -16,14 +18,16 @@ class BashScript:
         goal = f"{goal}. But before you get started, Brainstorm about the different ways to achieve the goal, then choose one and concentrate on it."
 
     @staticmethod
-    def action(command,goal_id):
-        command_parts = command.split(" ");
-        if command_parts[1] == "new":
-            return run_new(command_parts[2:])
-        if command_parts[1] == "next_step":
-            return run_next_step(command_parts[2:])
-        if command_parts[1] == "complete":
-            return run_complete(command_parts[2:])
+    def action(command):
+        words = command.split(" ")
+        inout_path = DB.PREFS.get("inout directory")
+        words[1] = f"{inout_path}/{words[1]}"
+        cmd = ["bash"] + words[1:]
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, shell=False, timeout=300)
+        except Exception as e:
+            return f"ERROR: {e}"
+        return result.stdout + result.stderr
 
 
     @staticmethod
