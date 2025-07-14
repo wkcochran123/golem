@@ -24,12 +24,13 @@ def build_argparse():
 
 def run_infinite_loop(llm_manager, executive_manager, context_manager, command_manager):
     while True:
+		DB.PREFS.reload() # Hot swapping prefs like a boss
         (prompt,context) = DB.pop_prompt()
-        (prompt,context) = executive_manager.prompt_in(prompt,context)
+        (prompt,context,model) = executive_manager.prompt_in(prompt,context)
         if prompt == None:
             prompt = "Make progress on a goal"
             context = "robot"
-        result = llm_manager.send_prompt(prompt, context_manager.generate_context(context), context_manager.generate_chat(context))
+        result = llm_manager.send_prompt(prompt, model, context_manager.generate_context(context), context_manager.generate_chat(context))
         (prompt,result,context) = executive_manager.response_out(prompt,result,context)
         output = command_manager.run_command(result)
         executive_manager.command_out(prompt,result,output,context)

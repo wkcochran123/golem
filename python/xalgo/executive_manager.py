@@ -21,9 +21,10 @@ class ExecutiveManager:
                     this.rules.append(t)
 
     def prompt_in (self,prompt,context):
+        model=None
         for x in this.rules:
-            (prompt,context) = x.prompt_in(prompt,context)
-        return (prompt,context)
+            (prompt,model,context) = x.prompt_in(prompt,model,context)
+        return (prompt,model,context)
 
     def response_out (self,prompt,response,context):
         for x in this.rules:

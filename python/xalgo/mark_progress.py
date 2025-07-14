@@ -10,9 +10,10 @@ class MarkProgress:
         return "mark_progress"
 
     @staticmethod
-    def prompt_in (self,prompt,context):
+    def prompt_in (self: MarkProgress,prompt: str ,model: str,context: str) -> (str,str,str):
         if random.random() < float(DB.PREFS.get(MarkProgress.MARK_PROGRESS_LIKELIHOOD,.1)):
             DB.queue_prompt("Mark progress on a goal")
+        return prompt,model,context
 
 
     @staticmethod

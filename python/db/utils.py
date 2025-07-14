@@ -185,6 +185,9 @@ class Prefs:
         meta parameters, etc.
     """
     def __init__ (self):
+        self.reload()
+
+    def reload(self):
         self._preferences = dict()
         for row in DB.select("select key, value from preferences", ()):
             self._preferences[row[0]] = row[1]
