@@ -50,13 +50,13 @@ class DB:
 
     @staticmethod
     def queue_prompt(prompt,context="robot"):
-        DB.commit("INSERT INTO stimuli (timestamp,prompt,context) VALUES(?,?,?)",(DB.cdt(),prompt.context))
+        DB.commit("INSERT INTO stimuli (timestamp,prompt,context) VALUES(?,?,?)",(DB.cdt(),prompt,context))
 
     @staticmethod
     def pop_prompt():
         conn = sqlite3.connect(DB.DB_PATH, timeout=5.0)
         cur = conn.cursor()
-        cur.execute("select prompt,context from stimuli where sid not in (select gid from response)")
+        cur.execute("select prompt,context from stimuli where sid not in (select sid from response)")
         rows = cur.fetchall()
         prompt = None
         context = None
@@ -71,7 +71,7 @@ class DB:
     @staticmethod
     def reset ():
         os.remove(DB.DB_PATH)
-        stat_db(None)
+        DB.stat_db(None)
 
     @staticmethod
     def stat_db (sqlite_bootstrap):
@@ -194,7 +194,7 @@ class Prefs:
         
     def get (self,pref,default=None):
         if pref not in self._preferences:
-            value = default if default is not None else input (f"Unknown preference {pref} and no default value was provided. Please input a value:")
+            value = default if default is not None else input (f"Unknown preference '{pref}' and no default value was provided. Please input a value: ")
             self.set(pref,value)
         return self._preferences[pref]
 

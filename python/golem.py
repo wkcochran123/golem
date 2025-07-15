@@ -6,6 +6,7 @@ from llm import LLMManager
 import argparse
 import os
 import shutil
+import subprocess
 
 
 def build_argparse():
@@ -19,14 +20,18 @@ def build_argparse():
     parser.add_argument('--set_pref_key', default=None,  help="The key to a preference to set")
     parser.add_argument('--set_pref_val', default=None, help="The value of a preference to set")
     parser.add_argument('--start', action='store_true', help="Start the robot prompt pump")
+    parser.add_argument('--stop', action='store_true', help="Start the robot prompt pump")
+    parser.add_argument('--prompt', default=None, help="Send the golem a prompt")
     return parser.parse_args()
 
 
 def run_infinite_loop(llm_manager, executive_manager, context_manager, command_manager):
-    while True:
-		DB.PREFS.reload() # Hot swapping prefs like a boss
+    ExecutiveManager.start()
+    DB.PREFS.reload() # Hot swapping prefs like a boss
+    while ExecutiveManager.is_running():
         (prompt,context) = DB.pop_prompt()
         (prompt,context,model) = executive_manager.prompt_in(prompt,context)
+        print(f"{prompt}\n{context}\n{model}")
         if prompt == None:
             prompt = "Make progress on a goal"
             context = "robot"
@@ -34,6 +39,7 @@ def run_infinite_loop(llm_manager, executive_manager, context_manager, command_m
         (prompt,result,context) = executive_manager.response_out(prompt,result,context)
         output = command_manager.run_command(result)
         executive_manager.command_out(prompt,result,output,context)
+        DB.PREFS.reload()
 
 
 
@@ -45,16 +51,15 @@ def main ():
     prefs.set("inout directory",inout_path)
     os.makedirs(prefs.get("inout directory"), exist_ok=True)
     if args.reset:
-        print("Resetting system...")
+        print("Resetting system")
         DB.reset()
-        prefs = Prefs()
-        prefs.set("root",args.root_directory)
-        inout = input ("Set your inout directory [inout]")
-        if inout == "":
-            inout == "inout"
-        prefs.set("inout directory",args.root_directory + "/" + inout)
-        subprocess.run("rm","-rf",prefs.get("inout directory"))
-        os.makedirs(prefs.get("inout directory"), exist_ok=True)
+        DB.PREFS.set("root",args.root_directory)
+        inout = input ("Set your inout directory [inout]").strip()
+        if inout.strip() == "":
+            inout = "inout"
+        DB.PREFS.set("inout directory",DB.PREFS.get("root") + "/" + inout)
+        subprocess.run(["rm","-rf",prefs.get("inout directory")])
+        os.makedirs(DB.PREFS.get("inout directory"), exist_ok=True)
 
     if args.list_prefs:
         print (DB.PREFS._preferences)
@@ -82,9 +87,18 @@ def main ():
     context_manager = ContextManager(command_manager)
     executive_manager = ExecutiveManager()
     llm_manager = LLMManager()
+
+    ############## ONCE CODE REACHES HERE, WE ARE READY TO GET SMART!
     if args.start:
-        run_infinite_loop(llm_manager, executive_manager, context_manager, command_manager):
+        run_infinite_loop(llm_manager, executive_manager, context_manager, command_manager)
         exit(0)
+
+    if args.stop:
+        ExecutiveManager.stop()
+        exit(0)
+
+    if args.prompt is not None:
+        DB.queue_prompt(f"The user has provided a prompt.  Set a goal to help the user with their task.  The user's prompt:\n{args.prompt}")
     
 if __name__ == "__main__":
         main()

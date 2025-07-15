@@ -1,21 +1,36 @@
 from db import DB
+import requests
+import json
 
 class Completions:
 
     API_ENDPOINT = "chat/completion endpoint"
-	URL = "chat/completion url"
-	DEFAULT_MODEL = "chat/completion default model"
+    URL = "chat/completion url"
+    DEFAULT_MODEL = "llm default model"
+    DEFAULT_SLOW = "qwq-32b"
 
     @staticmethod
-    def send_prompt(prompt: str, context: str, chat_log: []) -> str:
-        if not base_url:
-            raise ValueError("LLM base URL must be provided")
+    def get_token() -> str:
+        return "completions"
+
+    @staticmethod
+    def send_prompt(prompt: str, model: str, context: str, chat_log: []) -> str:
             
+        headers = {
+            "Content-Type": "application/json"
+        }
+
         endpoint = DB.PREFS.get(Completions.API_ENDPOINT,"v1/chat/completions")
-        full_url = DB.PREFS.get(Completions.URL)  # This will stall for input on first run
-		model = DB.PREFS.get(Completions.DEFAULT_MODEL)
-		context_model = DB.PREFS.get(f"{context} model",model)
+        url = DB.PREFS.get(Completions.URL)  # This will stall for input on first run
+        full_url = url + "/" + endpoint
         
+        messages = [
+            {"role": "system", "content": context},
+        ]
+        for (role,prompt) in chat_log:
+            messages.append({"role": role, "content": prompt})
+        if model == None:
+            model = DB.PREFS.get(Completions.DEFAULT_MODEL,Completions.DEFAULT_SLOW)
         payload = {
             "model": model,
             "messages": messages,
@@ -24,4 +39,6 @@ class Completions:
             "stream": False
         }
         print(f"Making request to: {full_url}")
-        return requests.post(full_url, headers=headers, data=json.dumps(payload), timeout=3000)
+        response = requests.post(full_url, headers=headers, data=json.dumps(payload), timeout=3000)
+        print (response.json())
+        return response.json()["choices"][0]["message"]["content"]

@@ -1,5 +1,6 @@
 from .robot_instructions import RobotInstructions
 from .robot_console import RobotConsole
+from .complete_chat_log import CompleteChatLog
 from db import DB,Prefs
 
 class ContextManager:
@@ -12,6 +13,7 @@ class ContextManager:
         self.all_context_generators = [
                 RobotInstructions,
                 RobotConsole,
+                CompleteChatLog,
                 ]
 
         context_types = DB.PREFS.get("context types")
@@ -25,8 +27,15 @@ class ContextManager:
                         generator_list.append(t)
             self.context_generators[context] = generator_list
 
+    def generate_chat(self,context):
+        answer = []
+        for x in self.context_generators[context]:
+            answer = answer + x.generate_chat()
+        return answer
+
+
     def generate_context(self,context):
         answer = ""
         for x in self.context_generators[context]:
-            answer = f"{answer}\n-------{x.get_token()}--------\n{x.generate(self)}"
+            answer = f"{answer}\n-------{x.get_token()}--------\n{x.generate_context(self)}"
         return answer
