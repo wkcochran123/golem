@@ -75,7 +75,9 @@ class Goal:
     @staticmethod
     def context_description():
         return """
-        goal
+        goal new <test_script> <goal>
+        goal next_step <goal_id> <next_test_script> <comments>
+        goal complete <goal_id>
 
         The goal command is used to manage the goals of the robot.  The goals are assigned
         a goal id by the robot and the goal id is used in robot commands to understand which

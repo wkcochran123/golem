@@ -3,9 +3,6 @@ import os
 
 class File:
     """
-    NOOP
-
-    Tell the robot to do nothing
     """
 
     def __init__(self):
@@ -46,8 +43,6 @@ class File:
     @staticmethod
     def context_description():
         return """
-        file
-
         The file command is used to interact with files on disk.
 
         file list

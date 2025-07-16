@@ -31,15 +31,14 @@ def run_infinite_loop(llm_manager, executive_manager, context_manager, command_m
     while ExecutiveManager.is_running():
         (prompt,context) = DB.pop_prompt()
         (prompt,context,model) = executive_manager.prompt_in(prompt,context)
-        print(f"{prompt}\n{context}\n{model}")
         if prompt == None:
-            prompt = "Make progress on a goal"
-            context = "robot"
-        result = llm_manager.send_prompt(prompt, model, context_manager.generate_context(context), context_manager.generate_chat(context))
+            (prompt,context,model) = executive_manager.no_prompt()
+        result = llm_manager.send_prompt(prompt, model, context)
         (prompt,result,context) = executive_manager.response_out(prompt,result,context)
         output = command_manager.run_command(result)
         executive_manager.command_out(prompt,result,output,context)
         DB.PREFS.reload()
+        input()
 
 
 
@@ -48,7 +47,6 @@ def main ():
     DB.stat_db(args.root_directory)
     prefs = Prefs()
     inout_path = prefs.get("inout directory",args.root_directory+"/inout")
-    prefs.set("inout directory",inout_path)
     os.makedirs(prefs.get("inout directory"), exist_ok=True)
     if args.reset:
         print("Resetting system")
@@ -72,10 +70,6 @@ def main ():
         DB.PREFS.set(args.set_pref_key,args.set_pref_val)
 
     command_manager = CommandManager()
-    if args.test_command is not None:
-        print(command_manager.run_command(args.test_command))
-        exit(0)
-
     if args.enable_command is not None:
         command_manager.enable_command(args.enable_command)
         exit(0)
@@ -89,6 +83,12 @@ def main ():
     llm_manager = LLMManager()
 
     ############## ONCE CODE REACHES HERE, WE ARE READY TO GET SMART!
+    print (f"{llm_manager}")
+    print (f"{LLMManager.MANAGER}")
+    if args.test_command is not None:
+        print(command_manager.run_command(args.test_command))
+        exit(0)
+
     if args.start:
         run_infinite_loop(llm_manager, executive_manager, context_manager, command_manager)
         exit(0)

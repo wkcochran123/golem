@@ -1,16 +1,32 @@
+from db import DB
+from llm import LLMManager
+from context import ContextManager
+
 class Evaluate:
     """
-    NOOP
-
-    Tell the robot to do nothing
     """
 
     def __init__(self):
         pass
 
     @staticmethod
-    def action(command,goal_id):
-        pass
+    def action(command):
+        words = command.split(" ")[1:]
+        filename = words[0]
+        inout_path = DB.PREFS.get(DB.INOUT_DIRECTORY)
+        try:
+            with open(f"{inout_path}/{filename}", "r") as f:
+                data = f.read()
+        except Exception as e:
+            return f"ERROR: {e}"
+
+        expertise = " ".join(words[1:])
+
+        prompt = f"Please evaluate the following on its merits. Be very thorough in your analysis and ensure that you can find every nit.  Give a score out of 100 and grade on a D curve.  Really avoid all benefits of doubt.  We require experise in {expertise}.\n{data}\n"
+        result = LLMManager.MANAGER.send_prompt(prompt, LLMManager.DEFAULT_MODEL, ContextManager.BLANK_CONTEXT)
+        print(result)
+        return result
+
 
     @staticmethod
     def get_token():
@@ -19,10 +35,6 @@ class Evaluate:
     @staticmethod
     def context_description():
         return """
-        Do nothing. If the assistant has nothing to do, just noop.  The noop command
-        is very useful when there are ERRORS, as if you feel like the error is too complex
-        or if you feel the error is incorrect, you can just noop the error.  This will
-        allow you to figure out how to fix it.  If you think there is no error, noop
-        is your best call.
+        evaluate <filename> <expertise>
         """
 

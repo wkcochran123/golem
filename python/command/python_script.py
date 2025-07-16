@@ -14,7 +14,7 @@ class PythonScript:
     @staticmethod
     def action(command):
         words = command.split(" ")
-        inout_path = DB.PREFS.get("inout directory")
+        inout_path = DB.PREFS.get(DB.INOUT_DIRECTORY)
         words[1] = f"{inout_path}/{words[1]}"
         cmd = ["python"] + words[1:]
         try:

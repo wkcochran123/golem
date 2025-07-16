@@ -28,7 +28,6 @@ class Speak:
         return SPEAK
 
 
-        pass
 
     @staticmethod
     def get_token():
@@ -37,10 +36,8 @@ class Speak:
     @staticmethod
     def context_description():
         return """
-        Do nothing. If the assistant has nothing to do, just noop.  The noop command
-        is very useful when there are ERRORS, as if you feel like the error is too complex
-        or if you feel the error is incorrect, you can just noop the error.  This will
-        allow you to figure out how to fix it.  If you think there is no error, noop
-        is your best call.
+        speak <text>
+
+        This will speak the text aloud.
         """
 

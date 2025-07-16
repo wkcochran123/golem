@@ -10,6 +10,8 @@ class ExecutiveManager:
     STATE = "golem state"
     RUNNING = 1
     STOP = 0
+    DEFAULT_PROMPT = "MAKE PROGRESS: Look to see if there are any goals mentioned.  If not, emit noop."
+    DEFAULT_CONTEXT = "robot"
 
     def __init__ (self):
         self.all_xrules = [
@@ -36,6 +38,9 @@ class ExecutiveManager:
     @staticmethod
     def is_running():
         return int(DB.PREFS.get(ExecutiveManager.STATE)) == ExecutiveManager.RUNNING
+
+    def no_prompt(self):
+        return self.prompt_in(ExecutiveManager.DEFAULT_PROMPT,ExecutiveManager.DEFAULT_CONTEXT)
 
     def prompt_in (self,prompt,context):
         model=None

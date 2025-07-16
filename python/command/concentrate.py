@@ -1,3 +1,7 @@
+from llm import LLMManager
+from context import ContextManager
+from db import DB
+
 class Concentrate:
     """
     NOOP
@@ -9,8 +13,12 @@ class Concentrate:
         pass
 
     @staticmethod
-    def action(command,goal_id):
-        pass
+    def action(command):
+        words = " ".join(command.split(" ")[1:])
+        prompt = f"Concentrate on figuring out what needs to be done.  The robot is asking for more insight on: {words}"
+        result = LLMManager.MANAGER.send_prompt(prompt, LLMManager.DEFAULT_MODEL, ContextManager.THINK_CONTEXT)
+        print(result)
+        return result
 
     @staticmethod
     def get_token():
@@ -19,10 +27,13 @@ class Concentrate:
     @staticmethod
     def context_description():
         return """
-        Do nothing. If the assistant has nothing to do, just noop.  The noop command
-        is very useful when there are ERRORS, as if you feel like the error is too complex
-        or if you feel the error is incorrect, you can just noop the error.  This will
-        allow you to figure out how to fix it.  If you think there is no error, noop
-        is your best call.
+        concentrate <prompt>
+
+        By concentrating, you can explore a broader set of solutions. This is good to do every once in a while to focus
+        thoughts on particularly difficult problems.
+
+        Example:
+            
+            concentrate Focus on the best way to get started writing a book.
         """
 

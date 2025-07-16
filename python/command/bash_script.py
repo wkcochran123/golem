@@ -37,7 +37,7 @@ class BashScript:
     @staticmethod
     def context_description():
         return """
-        bash_script 
+        bash_script <script name>
 
         The bash_script will execute a bash script on the robot for you. In order to
         use bash_script, first code up a script in bash then call this method.

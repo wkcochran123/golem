@@ -8,6 +8,7 @@ class DB:
     """
     DB_PATH = None
     PREFS = None
+    INOUT_DIRECTORY = "inout directory"
 
     def __init__ (self):
         pass
@@ -53,10 +54,36 @@ class DB:
         DB.commit("INSERT INTO stimuli (timestamp,prompt,context) VALUES(?,?,?)",(DB.cdt(),prompt,context))
 
     @staticmethod
+    def add_console_line (command,result,timestamp):
+        DB.commit("INSERT INTO robot_console (command,result,timestamp) VALUES (?,?,?)",(command,result,DB.cdt()))
+
+
+    @staticmethod
+    def add_prompt_response(prompt, response, context,prompt_timestamp):
+        sides = response.split("</think>")
+        think = ""
+        if len(sides) > 1:
+            repsonse = sides[-1]
+            think = sides[0]
+        sid = DB.single_value("select sid from stimuli where sid not in (select sid from response)")
+        if sid is None:
+            conn = sqlite3.connect(DB.DB_PATH, timeout=5.0)
+            cursor = conn.cursor()
+            cursor.execute("BEGIN")  # start transaction
+            cursor.execute("INSERT INTO stimuli (prompt,context,timestamp)  VALUES (?,?,?)", (prompt,context,prompt_timestamp))
+            sid = cursor.lastrowid  # get the primary key
+            cursor.execute("INSERT INTO response (sid,response,think,timestamp) VALUES (?,?,?,?)", (sid,response,think,DB.cdt()))
+            conn.commit()
+            conn.close()
+            return
+        DB.commit("INSERT INTO response (sid,response,think,timestamp) VALUES (?,?,?,?)", (sid,response,think,DB.cdt()))
+
+
+    @staticmethod
     def pop_prompt():
         conn = sqlite3.connect(DB.DB_PATH, timeout=5.0)
         cur = conn.cursor()
-        cur.execute("select prompt,context from stimuli where sid not in (select sid from response)")
+        cur.execute("select prompt,context from stimuli where sid not in (select sid from response) order by sid asc")
         rows = cur.fetchall()
         prompt = None
         context = None
@@ -68,8 +95,11 @@ class DB:
         conn.close()
         return (prompt,context)
 
+    URL = None
+
     @staticmethod
     def reset ():
+        DB.URL = DB.PREFS.get("chat/completion url")
         os.remove(DB.DB_PATH)
         DB.stat_db(None)
 
@@ -88,6 +118,9 @@ class DB:
             DB.build_database(sqlite_bootstrap)
 
         DB.PREFS = Prefs()
+        if DB.URL:
+            DB.PREFS.set("chat/completion url",DB.URL)
+        DB.URL = None
 
     @staticmethod
     def build_database(path):
@@ -171,10 +204,6 @@ class DB:
                     prompt text not null,
                     data text not null
                     )''')
-        cur.execute("insert into preferences (key,value) values(?,?)",("context types","robot,coder"))
-        cur.execute("insert into preferences (key,value) values(?,?)",("robot generators","robot_instructions,robot_console"))
-        cur.execute("insert into preferences (key,value) values(?,?)",("coder generators","robot_console"))
-
         conn.commit()
         conn.close()
 

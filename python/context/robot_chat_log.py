@@ -1,6 +1,6 @@
 from db import DB,Prefs
 
-class CompleteChatLog:
+class RobotChatLog:
     """
     """
 
@@ -11,7 +11,7 @@ class CompleteChatLog:
     @staticmethod
     def generate_chat():
         answer = []
-        for row in DB.select ("SELECT stimuli.prompt, response.response FROM stimuli, response where stimuli.sid = response.sid order by stimuli.sid"):
+        for row in DB.select ("SELECT stimuli.prompt, response.response from stimuli,response where stimuli.context = 'robot' and stimuli.sid = response.sid order by stimuli.sid"):
             answer.append(("user",row[0]))
             answer.append(("assistant",row[1]))
 
@@ -19,5 +19,5 @@ class CompleteChatLog:
 
     @staticmethod
     def get_token():
-        return "complete_chat_log"
+        return "robot_chat_log"
     

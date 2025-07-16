@@ -5,10 +5,10 @@ from .download import Download
 from .evaluate import Evaluate
 from .file import File
 from .goal import Goal
-from .iterate import Iterate
 from .look import Look
 from .move import Move
 from .noop import Noop
+from .write import Write
 from .brainstorm import BrainStorm
 from .python_script import PythonScript
 from .speak import Speak
@@ -21,6 +21,7 @@ class CommandManager:
 
     """
 
+    MANAGER = None
 
     def __init__ (self):
         self.SUCCESS = "Command executed successfully."
@@ -38,7 +39,7 @@ class CommandManager:
                 Evaluate,
                 BrainStorm,
                 Concentrate,
-                Iterate,
+                Write,
                 Code,
                 ]
         self.commands = []
@@ -46,6 +47,8 @@ class CommandManager:
         command_list = DB.PREFS.get("command manager list",",".join(cmd_list))
         for x in command_list.split(","):
             self.commands.append(self.find_command(x))
+
+        CommandManager.MANAGER = self
 
     def find_command(self,command_text):
         for y in self.all_commands:
@@ -56,10 +59,11 @@ class CommandManager:
     def run_command(self,full_command):
         command = full_command.strip().split("|||")[0]
         first_word = command.split(" ")[0]
+        print (self.commands)
         for cmd in self.commands:
             if cmd.get_token() == first_word:
                 result = cmd.action(command)
-                DB.commit("INSERT INTO robot_console (command,result,timestamp) VALUES (?,?,?)", (command, result, DB.cdt()))
+                DB.add_console_line(command,result,DB.cdt())
                 return result
         return f"ERROR: Unknown command {first_word}"
 

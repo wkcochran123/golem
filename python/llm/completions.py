@@ -22,13 +22,19 @@ class Completions:
 
         endpoint = DB.PREFS.get(Completions.API_ENDPOINT,"v1/chat/completions")
         url = DB.PREFS.get(Completions.URL)  # This will stall for input on first run
-        full_url = url + "/" + endpoint
+        full_url = url.strip("/") + "/" + endpoint
         
         messages = [
             {"role": "system", "content": context},
         ]
-        for (role,prompt) in chat_log:
-            messages.append({"role": role, "content": prompt})
+        for (role,msg) in chat_log:
+            messages.append({"role": role, "content": msg})
+        messages.append({"role": "user", "content": prompt})
+
+        for message in messages:
+            role = message["role"]
+            content = message["content"]
+            print (f"{role}:\n{content}\n\n")
         if model == None:
             model = DB.PREFS.get(Completions.DEFAULT_MODEL,Completions.DEFAULT_SLOW)
         payload = {
@@ -38,7 +44,5 @@ class Completions:
             "max_tokens": -1,  # Keep unlimited for direct requests
             "stream": False
         }
-        print(f"Making request to: {full_url}")
         response = requests.post(full_url, headers=headers, data=json.dumps(payload), timeout=3000)
-        print (response.json())
         return response.json()["choices"][0]["message"]["content"]

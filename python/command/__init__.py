@@ -7,7 +7,6 @@ from .download import Download
 from .evaluate import Evaluate
 from .file import File
 from .goal import Goal
-from .iterate import Iterate
 from .look import Look
 from .move import Move
 from .noop import Noop
