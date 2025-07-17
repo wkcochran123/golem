@@ -1,5 +1,6 @@
 import subprocess
 from db import DB,Prefs
+from llm import LLMManager
 
 class BashScript:
     """
@@ -7,6 +8,7 @@ class BashScript:
 
     Tell the robot to run a bash script from the file list
     """
+
 
     def __init__(self):
         pass
@@ -26,7 +28,9 @@ class BashScript:
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, shell=False, timeout=300)
         except Exception as e:
+            llm_manager.adjust_mood(-100)
             return f"ERROR: {e}"
+        llm_manager.adjust_mood(10)
         return result.stdout + result.stderr
 
 

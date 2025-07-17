@@ -22,6 +22,11 @@ class LLMManager:
                 self.strategy = x
 
         LLMManager.MANAGER = self
+        self.mood = 0
+
+    def adjust_mood(delta):
+        self.mood = self.mood + delta
+        DB.commit("insert into mood (mood) values (?)",self.mood)
 
     def send_prompt(self,prompt: str, model: str, context: str) -> str:
         in_cdt = DB.cdt()

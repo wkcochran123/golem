@@ -204,6 +204,11 @@ class DB:
                     prompt text not null,
                     data text not null
                     )''')
+        cur.execut('''
+                    create table mood (
+                    mid integer primary key
+                    mood integer not null
+                    )''')
         conn.commit()
         conn.close()
 
