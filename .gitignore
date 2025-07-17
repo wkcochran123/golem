@@ -2,3 +2,5 @@
 *__pycache__*
 *sqlite
 inout
+concept_nodes.log
+*gguf
