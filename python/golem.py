@@ -36,9 +36,9 @@ def run_infinite_loop(llm_manager, executive_manager, context_manager, command_m
         result = llm_manager.send_prompt(prompt, model, context)
         (prompt,result,context) = executive_manager.response_out(prompt,result,context)
         output = command_manager.run_command(result)
+        llm_manager.flush_mood()
         executive_manager.command_out(prompt,result,output,context)
         DB.PREFS.reload()
-        input()
 
 
 
