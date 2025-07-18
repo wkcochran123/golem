@@ -28,8 +28,8 @@ directories necessary to run the robot.  This is handy to reset
 the golem should it become stuck.  This wipes memories, state,
 and all prefs _except_ the location of the /v1/chat/completions.
 It will interactively ask for all prefs it needs.  Only the URL
-for the endpoint is missing an intelligent default.  Pressing
-enter will get something working.
+for the endpoint is missing an intelligent default. The URL should be of the form http://<addr>:<port>. :<port> defaults to 80
+Pressing enter will get something working.
 
 2. `python golem.py --prompt "seed prompt"`  This step isn't
 technially necessary to get started, but this is one method of
