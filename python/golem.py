@@ -35,8 +35,6 @@ def run_infinite_loop(llm_manager, executive_manager, context_manager, command_m
             (prompt,context,model) = executive_manager.no_prompt()
         result = llm_manager.send_prompt(prompt, model, context)
         (prompt,result,context) = executive_manager.response_out(prompt,result,context)
-        print ("About to run command")
-        input()
         output = command_manager.run_command(result)
         llm_manager.flush_mood()
         executive_manager.command_out(prompt,result,output,context)
@@ -85,8 +83,6 @@ def main ():
     llm_manager = LLMManager()
 
     ############## ONCE CODE REACHES HERE, WE ARE READY TO GET SMART!
-    print (f"{llm_manager}")
-    print (f"{LLMManager.MANAGER}")
     if args.test_command is not None:
         print(command_manager.run_command(args.test_command))
         exit(0)

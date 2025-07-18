@@ -1,4 +1,5 @@
 from db import DB,Prefs
+from llm import LLMManager
 import subprocess
 
 
@@ -23,21 +24,24 @@ class Goal:
         test_script = command[0]
         goal = f"{goal}. But before you get started, Brainstorm about the different ways to achieve the goal, then choose one and concentrate on it."
         DB.commit ("INSERT INTO goals (progress,test_script,timestamp,description) VALUES ( ? , ? , ? , ?)",(0,test_script,DB.cdt(),goal))
+        LLMManager.MANAGER.adjust_mood(100) 
         return Goal.get_token()
 
     @staticmethod
     def _run_test(gid):
         script_to_run = DB.single_value("select test_script from goals where gid = ?",(gid,))
         full_command = DB.PREFS.get("inout_directory")+"/"+script_to_run
-        print (full_command)
         result = None
         try:
             result = subprocess.run(['python',full_command], capture_output=True, text=True, timeout=20)
         except Exception as e:
+            LLMManager.MANAGER.adjust_mood(-10)  
             return f"{script_to_run} failed: ERROR: {e}. Please understand why {script_to_run} is failing and debug the script"
         output = result.stdout + result.stderr
         if output.strip() != "All tests pass.":
+            LLMManager.MANAGER.adjust_mood(-2)  
             return f"{script_to_run} has failing tests. The output of the script is:\n{output}"
+        LLMManager.MANAGER.adjust_mood(100) 
         return Goal.get_token()
 
     @staticmethod
@@ -59,6 +63,7 @@ class Goal:
         if step_one != Goal.get_token():
             return step_one
         DB.commit ("UPDATE goals SET progress = 1 WHERE gid = ?",(command[0]))
+        LLMManager.MANAGER.adjust_mood(1000)  #Let's make this good
         return Goal.get_token()
 
     @staticmethod

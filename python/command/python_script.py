@@ -1,5 +1,6 @@
 import subprocess
 from db import DB,Prefs
+from llm import LLMManager
 
 class PythonScript:
     """
@@ -20,7 +21,13 @@ class PythonScript:
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, shell=False, timeout=300)
         except Exception as e:
+            LLMManager.MANAGER.adjust_mood(-10)
             return f"ERROR: {e}"
+        if len(result.stderr) > 0:
+            
+            LLMManager.MANAGER.adjust_mood(-5)
+        else:
+            LLMManager.MANAGER.adjust_mood(100)
         return result.stdout + result.stderr
 
 

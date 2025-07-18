@@ -57,20 +57,13 @@ class CommandManager:
         return None
 
     def run_command(self,full_command):
-        print (f"Running command {full_command}")
         command = full_command.strip().split("|||")[0]
         first_word = command.split(" ")[0]
-        print (self.commands)
-        print (command)
-        input()
         for cmd in self.commands:
-            print(cmd.get_token())
             if cmd.get_token() == first_word:
                 result = cmd.action(command)
                 DB.add_console_line(command,result,DB.cdt())
-                input("tried to add console line")
                 return result
-        input ("Wha?")
         return f"ERROR: Unknown command {first_word}"
 
     def _write_prefs(self):

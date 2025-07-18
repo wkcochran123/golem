@@ -28,9 +28,9 @@ class BashScript:
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, shell=False, timeout=300)
         except Exception as e:
-            llm_manager.adjust_mood(-100)
+            LLMManager.MANAGER.adjust_mood(-100)
             return f"ERROR: {e}"
-        llm_manager.adjust_mood(10)
+        LLMManager.MANAGER.adjust_mood(10)
         return result.stdout + result.stderr
 
 

@@ -1,3 +1,5 @@
+from llm import LLMManager
+
 class Noop:
     """
     NOOP
@@ -10,7 +12,7 @@ class Noop:
 
     @staticmethod
     def action(command,goal_id):
-        pass
+        LLMManager.MANAGER.adjust_mood(-1) # Boredom
 
     @staticmethod
     def get_token():

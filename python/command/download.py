@@ -1,7 +1,7 @@
 import os
 import subprocess
 from db import DB
-
+from llm import LLMManager
 
 class Download:
     """
@@ -19,6 +19,7 @@ class Download:
         ai_words = command.split(" ")
         inout_path = DB.PREFS.get(DB.INOUT_DIRECTORY)
         os.chdir(inout_path)
+        LLMManager.MANAGER.adjust_mood(1) # Just like TikTok
         output_path = f"{inout_path}/{ai_words[2]}"
         cmd = ['/usr/bin/curl', '-A', 'Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0', ai_words[1], '-o', output_path]
         result = subprocess.run(cmd, capture_output=True, text=True, shell=False)

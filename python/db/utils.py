@@ -243,6 +243,7 @@ class DB:
                     tid integer primary key,
                     prompt text not null,
                     data text not null
+<<<<<<< HEAD
                     )"""
         )
         cur.execute(
@@ -252,6 +253,14 @@ class DB:
                     mood integer not null
                     )"""
         )
+=======
+                    )''')
+        cur.execute('''
+                    create table mood (
+                    mid integer primary key,
+                    mood text not null
+                    )''')
+>>>>>>> 173738b (patching)
         conn.commit()
         conn.close()
 

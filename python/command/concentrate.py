@@ -17,7 +17,7 @@ class Concentrate:
         words = " ".join(command.split(" ")[1:])
         prompt = f"Concentrate on figuring out what needs to be done.  The robot is asking for more insight on: {words}"
         result = LLMManager.MANAGER.send_prompt(prompt, LLMManager.DEFAULT_MODEL, ContextManager.THINK_CONTEXT)
-        print(result)
+        LLMManager.MANAGER.adjust_mood(10)
         return result
 
     @staticmethod

@@ -17,6 +17,7 @@ class BrainStorm:
         words = " ".join(command.split(" ")[1:])
         prompt = f"Brainstorm and focus on the following: {words}"
         result = LLMManager.MANAGER.send_prompt(prompt, LLMManager.DEFAULT_MODEL, ContextManager.THINK_CONTEXT)
+        LLMManager.MANAGER.adjust_mood(1)
         return result
 
 

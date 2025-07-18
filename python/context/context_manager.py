@@ -35,8 +35,6 @@ class ContextManager:
         DB.PREFS.set(f"{ContextManager.THINK_CONTEXT} generators",f"{ContextManager.THINK_CONTEXT_GENERATORS}")
         DB.PREFS.set(f"{ContextManager.BLANK_CONTEXT} generators",f"{ContextManager.BLANK_CONTEXT_GENERATORS}")
         self.context_generators = dict()
-        print ("!!")
-        print(context_types)
         for context in context_types.split(","):
             generators_for_context = DB.PREFS.get(f"{context} generators")
             generator_list = []

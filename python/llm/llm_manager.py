@@ -11,6 +11,7 @@ class LLMManager:
     #DEFAULT_MODEL = "gemma-3-4b-it-qat"
     DEFAULT_MODEL = "qwq-32b"
     MANAGER = None
+    MOOD = "mood"
 
     def __init__ (self):
         self.all_llm_strategies = [
@@ -28,7 +29,7 @@ class LLMManager:
         self.mood = self.mood + delta
 
     def flush_mood(self):
-        DB.commit("insert into mood (mood) values (?)",self.mood)
+        DB.commit("INSERT INTO mood (mood) VALUES (?)",(self.mood,))
 
     def send_prompt(self,prompt: str, model: str, context: str) -> str:
         in_cdt = DB.cdt()
