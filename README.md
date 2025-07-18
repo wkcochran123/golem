@@ -41,3 +41,8 @@ has fairly chatty output so you can watch it do some things.
 
 4. `python ctrl.py` (optional) In another terminal, you can
 start a primitive command and control flask application.
+
+For more on how to setup the system that let's the robot learn how to be
+a better robot, download and install a [modified llama.cpp host](https://github.com/wkcochran123/golem_llama.cpp)
+that will allow the robot to express success or failure to the LLM so
+it can be used to conidition the tokens for selection.
