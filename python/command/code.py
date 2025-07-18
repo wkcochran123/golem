@@ -16,10 +16,7 @@ class Code:
         sub_prompt = " ".join(words[2:])
         prompt = f"Please write a {lang} program to solve the following ask:\n{sub_prompt}\n\n PLEASE DO NOT ADD ANY EXPLANATION AS THIS WILL BE COPIED DIRECTLY TO A FILE."
         result = LLMManager.MANAGER.send_prompt(prompt, LLMManager.DEFAULT_MODEL, ContextManager.THINK_CONTEXT)
-        lines = result.split("\n")
-        while (lines[0][:3] != "```"):
-            lines = lines [1:]
-        lines = lines[1:-1]
+        lines = [line for line in result.split("\n") if not line.startswith("```")]
         LLMManager.MANAGER.adjust_mood(len(lines))
         code = "\n".join(lines)
         inout_path = DB.PREFS.get(DB.INOUT_DIRECTORY)
