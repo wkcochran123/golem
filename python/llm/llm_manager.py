@@ -37,5 +37,5 @@ class LLMManager:
                                              ContextManager.MANAGER.generate_context(context), 
                                              ContextManager.MANAGER.generate_chat(context))
         DB.add_prompt_response(prompt,response,context,in_cdt)
-        return response
+        return response.split("</think>")[-1]
 

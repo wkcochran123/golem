@@ -35,6 +35,8 @@ def run_infinite_loop(llm_manager, executive_manager, context_manager, command_m
             (prompt,context,model) = executive_manager.no_prompt()
         result = llm_manager.send_prompt(prompt, model, context)
         (prompt,result,context) = executive_manager.response_out(prompt,result,context)
+        print ("About to run command")
+        input()
         output = command_manager.run_command(result)
         llm_manager.flush_mood()
         executive_manager.command_out(prompt,result,output,context)
