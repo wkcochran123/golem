@@ -16,7 +16,7 @@ started very easily.
 
 ## Quickstart for the golem robot
 
-For those eager to tie themselves in a knot, golem comes somewhat
+For those eager to watch a robot build a tool and use it, golem comes somewhat
 ready to go out of the package, all you need is access to an LLM
 host that can interact with the OpenAI /v1/chat/completions API.
 
