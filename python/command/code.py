@@ -42,9 +42,7 @@ class Code:
         sub_prompt = " ".join(words[2:])
         prompt = f"Please debug the following program in {lang}.  {sub_prompt}\n\n{data} \n\n PLEASE DO NOT ADD ANY EXPLANATION AS THIS WILL BE COPIED DIRECTLY TO A FILE."
         result = LLMManager.MANAGER.send_prompt(prompt, LLMManager.DEFAULT_MODEL, ContextManager.THINK_CONTEXT)
-        lines = result.split("\n")
-        lines = lines[1:-1]
-        LLMManager.MANAGER.adjust_mood(-1)
+        lines = [line for line in result.split("\n") if not line.startswith("```")]
         code = "\n".join(lines)
         inout_path = DB.PREFS.get(DB.INOUT_DIRECTORY)
         try:
@@ -68,9 +66,7 @@ class Code:
         sub_prompt = " ".join(words[2:])
         prompt = f"Please refactor the following program in {lang}.  {sub_prompt}\n\n{data} \n\n PLEASE DO NOT ADD ANY EXPLANATION AS THIS WILL BE COPIED DIRECTLY TO A FILE."
         result = LLMManager.MANAGER.send_prompt(prompt, LLMManager.DEFAULT_MODEL, ContextManager.THINK_CONTEXT)
-        lines = result.split("\n")
-        LLMManager.MANAGER.adjust_mood(10)
-        lines = lines[1:-1]
+        lines = [line for line in result.split("\n") if not line.startswith("```")]
         code = "\n".join(lines)
         inout_path = DB.PREFS.get(DB.INOUT_DIRECTORY)
         try:
