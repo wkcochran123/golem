@@ -1,4 +1,5 @@
 from llm import LLMManager
+from db import DB,Prefs
 
 class Speak:
     """
@@ -37,9 +38,10 @@ class Speak:
 
     @staticmethod
     def context_description():
-        return """
-        speak <text>
+        return ""
+      #  return """
+      #  speak <text>
 
-        This will speak the text aloud.
-        """
+      #  This will speak the text aloud.
+      #  """
 

@@ -30,7 +30,7 @@ class Goal:
     @staticmethod
     def _run_test(gid):
         script_to_run = DB.single_value("select test_script from goals where gid = ?",(gid,))
-        full_command = DB.PREFS.get("inout_directory")+"/"+script_to_run
+        full_command = DB.PREFS.get("inout directory")+"/"+script_to_run
         result = None
         try:
             result = subprocess.run(['python',full_command], capture_output=True, text=True, timeout=20)
