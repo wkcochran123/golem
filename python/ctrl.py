@@ -1,14 +1,14 @@
 import sqlite3
 import html
 from flask import Flask, request, send_file
-#from flask_cors import CORS
+from flask_cors import CORS
 from datetime import datetime
 from pathlib import Path
 import os
 
 app = Flask(__name__)
-#CORS(app)
-INSTALLDIR = Path("/home/williamcochran/git/golem/python")
+CORS(app)
+INSTALLDIR = Path(os.path.join(os.environ["HOME"], "golem/raspberry_pi"))
 
 def commit_data(sql,val):
     conn = sqlite3.connect("core.sqlite", timeout=5.0)
@@ -151,7 +151,7 @@ def home():
     <html><head>
     <script language=javascript>
         function getEndPoint(ep) {{
-            website="http://192.168.68.79:8000/";
+            website="http://127.0.0.1:8000/";
             return website + ep;
         }}
         function fetchBoiler() {{
