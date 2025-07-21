@@ -286,3 +286,10 @@ class Prefs:
         DB.commit("DELETE FROM preferences WHERE key = ?", (pref,))
         DB.commit("INSERT INTO preferences (key,value) VALUES ( ? , ?)", (pref, value))
         self._preferences[pref] = value
+
+    def drop(self, pref=None):
+        if pref not in self._preferences:
+            raise KeyError(pref)
+        else:
+            DB.commit("DELETE FROM preferences WHERE key = ?", (pref,))
+            del self._preferences[pref]
