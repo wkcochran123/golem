@@ -1,0 +1,38 @@
+\documentclass[12pt]{article}
+\usepackage{amssymb,amsmath,amsthm}
+
+\theoremstyle{plain}
+\newtheorem{lemma}{Lemma}
+\newtheorem{definition}{Definition}
+
+
+\begin{document}
+\title{On the Ability To Reason and Large Language Models}
+\author{Bill Cochran}
+\maketitle
+
+\begin{abstract}
+We propose a formal model for reasoning limitations in large language 
+models (LLMs), based on the depth of their neural architecture. By 
+treating LLMs as linear operators composed of stacked transformations, 
+we show that each layer can at most encode one additional level of 
+logical reasoning. We define logic classes $\mathcal{L}_k$ inductively, 
+with $\mathcal{L}_0$ representing atomic predicates and 
+$\mathcal{L}_{k+1}$ formed via quantification or composition over 
+$\mathcal{L}_k$. We prove that a neural network of depth $n$ cannot 
+faithfully represent predicates in $\mathcal{L}_{n+1}$, implying a 
+strict upper bound on logical expressiveness. This structure induces 
+a nontrivial null space during tokenization and embedding, excluding 
+higher-order predicates from representability. Our framework suggests 
+a natural explanation for phenomena like hallucination, repetition, and 
+limited planning ability in current LLMs, while also providing a basis 
+for understanding how approximations to higher-order logic may arise. 
+This theoretical result motivates both architectural extensions and 
+interpretability strategies in future LLM development.
+\end{abstract}
+
+
+ection{Related Work}
+This work complements classical results on logical hierarchies and network expressiveness (e.g., [H₁], [H₄]), while offering a new tensor-based formalization of reasoning depth in language models. A full review will appear in future versions.
+
+\end{document}
