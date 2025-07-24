@@ -189,7 +189,7 @@ an idealized natural langugate token generation process.
 
 \section{The Null Space in Language Models}
 We decompose the information encoding/decoding steps of language processing
-using five tensors:
+using four tensors:
 \begin{enumerate}
 \item[$T$] \emph{Tokenizer} We assume an idealized, non-linear mapping 
  between natural language and an infinite token space. In practice, this 
@@ -205,7 +205,7 @@ that cannot be represented. This results in aliasing: multiple distinct concepts
 project to the same representation, allowing fluent language output despite an 
 incomplete reasoning foundation. We can use the Moore-Penrose or other minimum residual inverse.
     \item[$M$] \emph{Aribtrary Neural Net} This is the one-to-one mapping computed non-linearly by the neural net, 
-    but linearly by predicate logic.  We assume this operator is invertible.
+    but linearly by predicate logic.  We constructed this operator to be invertible.
 \item[$S$] \emph{Logit Selection Operator} This one-to-one mapping takes an activation and computes some utility for 
     token selection.  We assume this operator is invertible.
 \item[$L$] \emph{Forward Logit Projection}  This operator converts logit selection criteria to the
@@ -240,7 +240,7 @@ has appeared in other contexts.  The generally in this case, is probably associa
 with a minimum residual calculation of some sort.
 
 So some $p\in \mathcal{L}_b$ b-order logic predicate can be approximated by a finite set 
-$n_i\in\mathcal{L}_d$ order finite approximates in the mesh.
+$n_i\in\mathcal{L}_d$, $b \gg n$,  order finite approximates in the mesh.
 $$
 p\approx\sum_i \alpha n_i
 $$
