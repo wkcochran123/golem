@@ -20,9 +20,13 @@ class DB:
 
     @staticmethod
     def commit(query, values=()):
-        conn = sqlite3.connect(DB.DB_PATH, timeout=5.0)
-        cur = conn.cursor()
-        cur.execute(query, values)
+        try:
+            conn = sqlite3.connect(DB.DB_PATH, timeout=5.0)
+            cur = conn.cursor()
+            cur.execute(query, values)
+        except sqlite3.Error as e:
+            print(f"val: {values}")
+            print(f"SQLite3 execute error: {e}")
         conn.commit()
         conn.close()
 
@@ -76,18 +80,23 @@ class DB:
             "select sid from stimuli where sid not in (select sid from response)"
         )
         if sid is None:
-            conn = sqlite3.connect(DB.DB_PATH, timeout=5.0)
+            conn = sqlite3.connect(DB.DB_PATH, timeout=10.0)
             cursor = conn.cursor()
-            cursor.execute("BEGIN")  # start transaction
-            cursor.execute(
-                "INSERT INTO stimuli (prompt,context,timestamp)  VALUES (?,?,?)",
-                (prompt, context, prompt_timestamp),
-            )
-            sid = cursor.lastrowid  # get the primary key
-            cursor.execute(
-                "INSERT INTO response (sid,response,think,timestamp) VALUES (?,?,?,?)",
-                (sid, response, think, DB.cdt()),
-            )
+            try:
+                cursor.execute("BEGIN")  # start transaction
+                cursor.execute(
+                    "INSERT INTO stimuli (prompt,context,timestamp)  VALUES (?,?,?)",
+                    (prompt, context, prompt_timestamp),
+                )
+                sid = cursor.lastrowid  # get the primary key
+                cursor.execute(
+                    "INSERT INTO response (sid,response,think,timestamp) VALUES (?,?,?,?)",
+                    (sid, response, think, DB.cdt()),
+                )
+            except Exception as e:
+                print(f"Execute exception: {e}")
+                raise Exception(e)
+
             conn.commit()
             conn.close()
             return

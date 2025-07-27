@@ -8,24 +8,34 @@ import os
 
 app = Flask(__name__)
 CORS(app)
-INSTALLDIR = Path(os.path.join(os.environ["HOME"], "golem/raspberry_pi"))
+INSTALLDIR = Path(os.path.join(os.environ["HOME"], "golem/python"))
 
-def commit_data(sql,val):
+
+def commit_data(sql, val):
     conn = sqlite3.connect("core.sqlite", timeout=5.0)
     cur = conn.cursor()
 
-    cur.execute(sql,val)
+    cur.execute(sql, val)
     conn.commit()
     conn.close()
+
 
 def cdt():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-@app.route('/ask', methods=['POST'])
+
+@app.route("/ask", methods=["POST"])
 def submit():
-    prompt = request.get_json()['prompt']
-    commit_data("INSERT INTO stimuli (timestamp, prompt) VALUES ( ? , ? )",(cdt(),f"USER (never respond directly to USER prompts, always make a goal to accomplish the prompt. MAKE SURE YOU CAPTURE ALL OF THE INSTRUCTIONS AND NUANCE OF THE PROMPT. MAKE SURE ALL INFORMATION MAKES IT TO THE GOAL, NOT THE COMMENNT!):{prompt}"))
+    prompt = request.get_json()["prompt"]
+    commit_data(
+        "INSERT INTO stimuli (timestamp, prompt) VALUES ( ? , ? )",
+        (
+            cdt(),
+            f"USER (never respond directly to USER prompts, always make a goal to accomplish the prompt. MAKE SURE YOU CAPTURE ALL OF THE INSTRUCTIONS AND NUANCE OF THE PROMPT. MAKE SURE ALL INFORMATION MAKES IT TO THE GOAL, NOT THE COMMENNT!):{prompt}",
+        ),
+    )
     return "Success"
+
 
 @app.route("/goals")
 def goals():
@@ -34,27 +44,36 @@ def goals():
 
     cur.execute("SELECT gid,progress,description FROM goals WHERE progress != 1")
     rows = cur.fetchall()
-    answer = "<table valign=top><tr><th>gid</th><th>progress</th><th>description</th></tr>"
+    answer = (
+        "<table valign=top><tr><th>gid</th><th>progress</th><th>description</th></tr>"
+    )
     for row in rows:
-        answer += f"<tr valign=top><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td></tr>"
+        answer += (
+            f"<tr valign=top><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td></tr>"
+        )
     answer = answer + "</table>"
     conn.close()
     return answer
 
+
 @app.route("/files")
 def files():
-    files = [f for f in Path( INSTALLDIR / "inout").iterdir() if f.is_file()]
+    files = [f for f in Path(INSTALLDIR / "inout").iterdir() if f.is_file()]
 
     answer = ""
     for file in sorted(files, reverse=True):
         fname = f"{file}".split("/")[-1]
-        answer = answer + f"<a href=# onclick=\"fetchFile('{fname}')\")>{fname}</a>&nbsp;\n"
+        answer = (
+            answer + f"<a href=# onclick=\"fetchFile('{fname}')\")>{fname}</a>&nbsp;\n"
+        )
 
     return answer
+
 
 @app.route("/dummy")
 def dummy():
     return "100"
+
 
 @app.route("/mood")
 def mood():
@@ -70,20 +89,25 @@ def mood():
 
 @app.route("/picslist")
 def picslist():
-    files = [f for f in Path( INSTALLDIR / "pics").iterdir() if f.is_file()]
+    files = [f for f in Path(INSTALLDIR / "pics").iterdir() if f.is_file()]
 
     answer = ""
     for file in sorted(files, reverse=True):
         fname = f"{file}".split("/")[-1]
-        answer = answer + f"<a href=# onclick=\"fetchPic('{fname}')\")>{fname}</a><br>\n"
+        answer = (
+            answer + f"<a href=# onclick=\"fetchPic('{fname}')\")>{fname}</a><br>\n"
+        )
     return answer
+
 
 @app.route("/backlog")
 def backlog():
     conn = sqlite3.connect("core.sqlite", timeout=5.0)
     cur = conn.cursor()
 
-    cur.execute("select prompt from stimuli where sid not in (select sid from response)")
+    cur.execute(
+        "select prompt from stimuli where sid not in (select sid from response)"
+    )
     rows = cur.fetchall()
     answer = "<table valign=top>"
     for row in rows:
@@ -91,6 +115,7 @@ def backlog():
     answer = answer + "</table>"
     conn.close()
     return answer
+
 
 @app.route("/boiler")
 def boiler():
@@ -103,38 +128,47 @@ def boiler():
         return f"<pre>\n{row[0]}\n</pre>"
     return ""
 
+
 @app.route("/pic/<fname>")
 def pic(fname):
-    return send_file (INSTALLDIR / f"pics/{fname}", mimetype='image/jpeg')
+    return send_file(INSTALLDIR / f"pics/{fname}", mimetype="image/jpeg")
+
 
 @app.route("/file/<fname>")
 def file(fname):
-    return send_file (INSTALLDIR / f"inout/{fname}", mimetype='image/jpeg')
+    return send_file(INSTALLDIR / f"inout/{fname}", mimetype="image/jpeg")
+
 
 @app.route("/printable/<thoughtful>")
 def printable(thoughtful):
-    print (f"{thoughtful}")
+    print(f"{thoughtful}")
     conn = sqlite3.connect("core.sqlite", timeout=5.0)
     cur = conn.cursor()
-    cur.execute("SELECT stimuli.prompt, response.think, response.response FROM stimuli,response WHERE stimuli.sid = response.sid order by stimuli.sid asc")
+    cur.execute(
+        "SELECT stimuli.prompt, response.think, response.response FROM stimuli,response WHERE stimuli.sid = response.sid order by stimuli.sid asc"
+    )
     rows = cur.fetchall()
-    answer = "";
+    answer = ""
     for row in rows:
-        r0 = html.escape(row[0]).replace("\n","<br>")
-        r1 = html.escape(row[1]).replace("\n","<br>")
-        r2 = html.escape(row[2]).replace("\n","<br>")
+        r0 = html.escape(row[0]).replace("\n", "<br>")
+        r1 = html.escape(row[1]).replace("\n", "<br>")
+        r2 = html.escape(row[2]).replace("\n", "<br>")
         llm = ""
         if thoughtful == "true":
             llm = f"<br><b>llm thoughts:</b><br><i>{r1}</i>"
         answer += f"<b>prompt:</b><br>{r0}{llm}<br><b>command:</b><br><pre>{r2}<pre><br>&nbsp;<br>"
     conn.close()
     return answer
+
+
 @app.route("/dialog")
 def dialog():
     conn = sqlite3.connect("core.sqlite", timeout=5.0)
     cur = conn.cursor()
 
-    cur.execute("SELECT stimuli.prompt, response.think, response.response FROM stimuli,response WHERE stimuli.sid = response.sid order by stimuli.sid desc")
+    cur.execute(
+        "SELECT stimuli.prompt, response.think, response.response FROM stimuli,response WHERE stimuli.sid = response.sid order by stimuli.sid desc"
+    )
     rows = cur.fetchall()
     answer = "<table><tr><th width=33%>prompt</th><th width=33%>think</th><th width=33%>response</th></tr>"
     for row in rows:
@@ -147,7 +181,7 @@ def dialog():
 @app.route("/")
 def home():
     base_url = request.host_url
-    main_page = f'''
+    main_page = f"""
     <html><head>
     <script language=javascript>
         function getEndPoint(ep) {{
@@ -333,9 +367,10 @@ def home():
 
 
     </body>
-    </html>'''
-    
+    </html>"""
+
     return main_page
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
