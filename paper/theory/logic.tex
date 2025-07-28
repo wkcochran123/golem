@@ -13,9 +13,8 @@
 
 \begin{abstract}
 We propose a formal model of reasoning limitations in large neural net models for language,
-grounded in the depth of their neural architecture---leveraging the fact that their
-squashing functions are algebraic, and that they are typically executed on (w.l.o.g.) a binary
-computer. By treating neural networks as linear operators over logic predicate space we 
+grounded in the depth of their neural architecture.
+By treating neural networks as linear operators over logic predicate space we 
 show that each layer can encode at most 
 one additional level of logical reasoning. Logic classes $\mathcal{L}_k$ are 
 defined inductively, with $\mathcal{L}_0$ representing atomic predicates and 
@@ -113,8 +112,10 @@ of).  Within this framework, a neural net approximates higher order logic
 by having a finite and fixed set predicates that determine its value.
 So, the network can also distinghuish bounded linear combinations of $w$
 things, give or take the atoms necessary to abstract orders of logic.
-Instead of $\forall$, the network can take a finite state automaton and
-that finite state automaton will approximate the $\forall$.
+For example, instead of $\forall$, the network can imitate any appropriately
+bounded finite state automaton.  The bound is computable from $w$ through
+induction and demonstrates how this low order neural net can produce
+high order logic on any appropriately sized finite set of tokens.
 
 We then define an inductive construction: assume $P_{d+1} \subset 
 \mathcal{L}_{d+1}$ is a countably infinite set of predicates requiring depth 
@@ -142,9 +143,16 @@ the token set of a language model: the set of atoms the neural network can reaso
 Necessarily,
 $\hat{\mathcal{T}}\subset \mathcal{P}$, the set of all decidable predicates.  In short,
 a predicate $p\in \mathcal{P}$ but $p \notin \hat{\mathcal{T}}$, has been
-demonstrated to exist that the neural network cannot draw any reasonable conclusions from.
+demonstrated to exist.  This predicate describes an appropriately complex object. 
+In short, it is possible to compute an object that a neural net cannot reason about
+just from the number of nodes in the network.
 
-In particular, a finite counting of complicated finite objects.
+In particular, a finite counting of complicated finite objects is enough to exhaust
+any finite neural net.  There exist two objects complex enough that the neural net
+cannot distinguish, no matter how it was trained.  This is a common sense result
+and underscores that reasoning seen otherwise is not error free.  This is
+different behavior than most computer algorithms, which tend to fail in 
+exploitable ways when reasoning is not to be trusted.
 
 \section{Constructing the Neural Net from Prediate Logic}
 
@@ -175,18 +183,20 @@ Ergo, we have built a high dimensional linear operator that encompasses
 every possible internal state any simply connected, dense neural net can be in.
 
 By linearizing the neural net, we can identify how and why
-complex predicates are modeled within the neural network.
+complex predicates are modeled within the neural network.  We present
+a tensor construction that explores how the neural net evolves in
+an idealized natural langugate token generation process.
 
 \section{The Null Space in Language Models}
 We decompose the information encoding/decoding steps of language processing
-using five tensors:
+using four tensors:
 \begin{enumerate}
 \item[$T$] \emph{Tokenizer} We assume an idealized, non-linear mapping 
  between natural language and an infinite token space. In practice, this 
  mapping has a nontrivial null space: certain linguistic distinctions or 
 undecidable propositions may be irrecoverably compressed, rendering them 
 unrepresentable in token space.  These propositions are left as an
-        exercise for the reader (Hint: $A0 = 0$).
+        exercise for the reader.
     \item[$L^+$] \emph{Backward Logit Projection} This operator maps all 
         possible tokens in natural language to the set of 
 predicates whose truth values the language model can determine. Due to the model’s 
@@ -195,7 +205,7 @@ that cannot be represented. This results in aliasing: multiple distinct concepts
 project to the same representation, allowing fluent language output despite an 
 incomplete reasoning foundation. We can use the Moore-Penrose or other minimum residual inverse.
     \item[$M$] \emph{Aribtrary Neural Net} This is the one-to-one mapping computed non-linearly by the neural net, 
-    but linearly by predicate logic.  We assume this operator is invertible.
+    but linearly by predicate logic.  We constructed this operator to be invertible.
 \item[$S$] \emph{Logit Selection Operator} This one-to-one mapping takes an activation and computes some utility for 
     token selection.  We assume this operator is invertible.
 \item[$L$] \emph{Forward Logit Projection}  This operator converts logit selection criteria to the
@@ -212,7 +222,30 @@ p_{i+1} = T^{-1} L S M  L^+ T (p_i,p_{i-1},\ldots)
 $$
 
 Routine numerical analyses of these operators describe the interpolation process of 
-information retrieval and abstraction.
+information retrieval and abstraction.  For instance, $L$ is a highly underspecified
+projection, where a large amount of information can be interpolated from the 
+associated null space of $L^+$.
+
+Let's consider the information in the null space of $L^+$.  The construction of the
+finite neural net logic result suggests that there is an interpolation of higher
+order logic that can take place.  This interpolation can be seen as a mask
+applied to the complete linear combination of whatever logic predicate is being
+used as an interpolant for the next token.
+
+This suggests that the interpolation samples the actual true predicates and estimates
+truth of others by this interpolation.  The estimation of truth is more than likely
+shared across various concepts, related and unrelated.  In other words, the predicates
+being selected from are "generally" true or "generally" false because this logic
+has appeared in other contexts.  The generally in this case, is probably associated
+with a minimum residual calculation of some sort.
+
+So some $p\in \mathcal{L}_b$ b-order logic predicate can be approximated by a finite set 
+$n_i\in\mathcal{L}_d$, $b \gg n$,  order finite approximates in the mesh.
+$$
+p\approx\sum_i \alpha n_i
+$$
+It is this approximation that loses information and is the source of hallucination in
+this model.
 
 \section{Acknowledgements}
 
