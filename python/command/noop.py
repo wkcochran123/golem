@@ -1,5 +1,6 @@
 from llm import LLMManager
 
+
 class Noop:
     """
     NOOP
@@ -11,8 +12,9 @@ class Noop:
         pass
 
     @staticmethod
-    def action(command,goal_id):
-        LLMManager.MANAGER.adjust_mood(-1) # Boredom
+    def action(command):
+        LLMManager.MANAGER.adjust_mood(-1)  # Boredom
+        return "noop"
 
     @staticmethod
     def get_token():
@@ -29,4 +31,3 @@ class Noop:
         allow you to figure out how to fix it.  If you think there is no error, noop
         is your best call.
         """
-
