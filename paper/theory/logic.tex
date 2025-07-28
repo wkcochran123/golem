@@ -1,6 +1,8 @@
 \documentclass[12pt]{article}
 \usepackage{amssymb,amsmath,amsthm}
 
+
+
 \theoremstyle{plain}
 \newtheorem{lemma}{Lemma}
 \newtheorem{definition}{Definition}
@@ -61,26 +63,61 @@ This incomplete evaluation leads the model to construct necessarily incomplete--
 and therefore potentially incorrect---predicates.
 
 \section{Related Work}
-This work builds on classical theories of logical expressivity and recent studies
-of neural network depth:
+This paper develops a model of language token generation rooted in classical
+approximation theory.  We break the process into logical parts, each having
+been studied quite exstensively and describe operators that perform identical
+operations. We describe these tensors conversationally here and mathematically
+below.
+
+We begin with the abstraction of meaning into tokens: a non-linear mapping 
+between natural language and a finite symbolic space. While such tokenizations 
+are essential for computability, they introduce a null space — compressing 
+distinctions that may be undecidable, logically subtle, or simply orthogonal 
+to the learned basis. This view generalizes the insight of Shannon, who first 
+formalized communication as a lossy channel, and is sharpened by modern 
+critiques of token-level semantics. We accomplish this mapping with two tensors.
+
+Our tensor $T$ reflects this mapping as an abstraction of meaning, some
+semantic unit is tagged with a unique natural number. The second tensor,
+$L^+$, represents structural compression, one whose limitations propagate through 
+every downstream operation \cite{shannon1948, bender2020climbing}. 
+To wit: $T$ abstracts meaning from tokens and $L^+$ compresses these
+tokens.
+
+The function of $L^+$ — mapping from token space to discrete logic — parallels 
+classical interpolation theory. Weierstrass proved that all continuous functions 
+may be approximated by polynomials, yet as later formalized by Cheney and others, 
+such approximations can introduce substantial error when the underlying basis is 
+misaligned with the target function. Language models, in this light, act as 
+interpolation machines operating over an incomplete logical basis. The resulting 
+aliasing — structurally indistinguishable projections of semantically distinct 
+inputs — is a numerical inevitability, not a design flaw \cite{cheney1966approx, 
+courant1924methoden}.
+
+The final tensor we assume, $L$, completes the circuit by forward projecting selection 
+logits onto predicate space---reconstructing a representation of meaning 
+from utility. This projection is necessarily underspecified: for a given activation 
+pattern, many predicate configurations may be plausible. As Hadamard first 
+formalized, such inverse mappings are ill-posed \cite{hadamard1902problemes}, 
+requiring regularization or prior structure to produce stable interpretations 
+\cite{tikhonov1963regularization}. The phenomenon of hallucination in language 
+models thus emerges not from failure, but from the ambiguity inherent in 
+decoding underdetermined logical structure.
+
+
+This work also builds on classical theories of logical expressivity and recent studies on the representational power of neural networks:
 
 \begin{itemize}
-\item Fagin (1974) and Immerman (1999) develop the formal hierarchy of logical predicates in relation to complexity theory.
-\item Telgarsky (2016) and Hanin (2019) show that deeper neural networks can represent functions that shallow ones provably cannot.
-\item Weiss et al. (2021) and Saxton et al. (2019) examine the limitations of LLMs on symbolic and arithmetic reasoning.
-\item Lanham and Nikoli'c (2023) propose a notion of logical depth in language models, closely related to our own.
+\item Fagin~\cite{fagin1974generalized} and Immerman~\cite{immerman1999descriptive} formalized the hierarchy of logical predicates in connection with computational complexity.
+\item Telgarsky~\cite{telgarsky2016benefits} and Hanin~\cite{hanin2019complexity} demonstrate that deeper neural networks can represent functions that shallow ones provably cannot.
+\item Weiss et al.\cite{weiss2021thinking} and Saxton et al.\cite{saxton2019analysing} explore the limitations of large language models in symbolic and arithmetic reasoning.
+\item Lanham and Nikolić~\cite{lanham2023logical} introduce a notion of logical depth in language models, conceptually aligned with our tensor formalism.
 \end{itemize}
 
-This work complements these insights with a tensor-based formalization of
-the selection of semantic units in natural language processing and a proof of bounded 
-logical expressiveness of neural networds by depth. A
-full review will appear in future versions. To wit: the tensor structure 
-we propose is informed by prior work across multiple domains, including 
-representation learning, interpretability, and circuit complexity. We aim 
-to unify these threads by constructing a predicate-space framework that 
-yields a linear transformation that completely replicates the nonlinear 
-behavior of the neural network.
-
+We complement these insights by offering a tensor-based formalization of 
+semantic unit selection in language models, and by proving a bound on i
+logical expressiveness as a function of depth. A full review will appear 
+in future versions. 
 
 \section{Bound on Distinguishability In A Neural Net}
 Let $\mathcal{L}_i$ be the class of $i$-th order logic. Let $N_{d,w}$ 
@@ -257,4 +294,6 @@ fluency. As it aptly summarized the source of hallucinations:
 It’s recovering a low-rank projection of something that was never full-rank to begin with.
 \end{quote}
 
+\bibliographystyle{plain}
+\bibliography{logic}
 \end{document}
