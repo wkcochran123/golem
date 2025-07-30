@@ -4,3 +4,8 @@
 inout
 concept_nodes.log
 *gguf
+.DS_Store
+*.aux
+*.bbl
+*.blg
+*.log
