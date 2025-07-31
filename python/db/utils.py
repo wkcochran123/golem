@@ -74,7 +74,7 @@ class DB:
         sides = response.split("</think>")
         think = ""
         if len(sides) > 1:
-            repsonse = sides[-1]
+            response = sides[-1]
             think = sides[0]
         sid = DB.single_value(
             "select sid from stimuli where sid not in (select sid from response)"
@@ -199,7 +199,6 @@ class DB:
                     create table goals (
                     gid integer primary key,
                     progress float not null,
-                    test_script text not null,
                     timestamp text not null,
                     description text not null
                     )"""

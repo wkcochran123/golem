@@ -9,3 +9,4 @@ concept_nodes.log
 *.bbl
 *.blg
 *.log
+venv

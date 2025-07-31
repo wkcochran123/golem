@@ -61,7 +61,9 @@ class CommandManager:
         first_word = command.split(" ")[0]
         for cmd in self.commands:
             if cmd.get_token() == first_word:
+                print (f"Running command '{command}'")
                 result = cmd.action(command)
+                print (f"Got result:")
                 DB.add_console_line(command,result,DB.cdt())
                 return result
         return f"ERROR: Unknown command {first_word}"

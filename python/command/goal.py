@@ -1,13 +1,15 @@
 from db import DB,Prefs
 from llm import LLMManager
+from context import ContextManager
 import subprocess
 
 
 class Goal:
     """
-    NOOP
+    GOAL
 
-    Tell the robot to do nothing
+    The goal management system for the robot.  This implements a test-based step-based iteration to move
+    the goal to completion.
     """
 
     def __init__(self):
@@ -21,15 +23,13 @@ class Goal:
     @staticmethod
     def run_new(command):
         goal = " ".join(command[1:])
-        test_script = command[0]
         goal = f"{goal}. But before you get started, Brainstorm about the different ways to achieve the goal, then choose one and concentrate on it."
-        DB.commit ("INSERT INTO goals (progress,test_script,timestamp,description) VALUES ( ? , ? , ? , ?)",(0,test_script,DB.cdt(),goal))
+        DB.commit ("INSERT INTO goals (progress,timestamp,description) VALUES ( ? , ? , ?)",(0,DB.cdt(),goal))
         LLMManager.MANAGER.adjust_mood(100) 
         return Goal.get_token()
 
     @staticmethod
-    def _run_test(gid):
-        script_to_run = DB.single_value("select test_script from goals where gid = ?",(gid,))
+    def _run_test(gid,script_to_run):
         full_command = DB.PREFS.get("inout directory")+"/"+script_to_run
         result = None
         try:
@@ -38,7 +38,8 @@ class Goal:
             LLMManager.MANAGER.adjust_mood(-10)  
             return f"{script_to_run} failed: ERROR: {e}. Please understand why {script_to_run} is failing and debug the script"
         output = result.stdout + result.stderr
-        if output.strip() != "All tests pass.":
+#        if output.strip() != "All tests pass.":
+        if output.strip() not in ["one","1"]:
             LLMManager.MANAGER.adjust_mood(-2)  
             return f"{script_to_run} has failing tests. The output of the script is:\n{output}"
         LLMManager.MANAGER.adjust_mood(100) 
@@ -47,24 +48,52 @@ class Goal:
     @staticmethod
     def run_next_step(command):
         gid = command[0]
-        step_one = Goal._run_test(gid)
+        test_script = command[1]
+        step_one = Goal._run_test(gid,test_script)
         if step_one != Goal.get_token():
             return step_one
-        script = command[1]
         prompt = " ".join(command[2:])
-        current_description = DB.single_value("select description from goals where gid = ?", (gid,))
-        new_description = f"{current_description.strip()}\no [{DB.cdt()}] {prompt.strip()}\n"
-        DB.commit ("UPDATE goals SET description = ? , test_script = ? WHERE gid = ?",(new_description,script,gid))
-        return Goal.get_token()
+
+        current_description = DB.single_value("SELECT description FROM goals WHERE gid = ?",(gid,))
+        full_command = DB.PREFS.get("inout directory")+"/"+test_script
+        with open(full_command, "r", encoding="utf-8") as f:
+            script_text = f.read()
+
+        oneshot_prompt = f"Does the script:\n{script_text}\n accompilsh the next step in the goal:\n{current_description}\n\nPlease start your response with yes or no followed by a numeric grade from 0-100 followed by your reasoning."
+        response = LLMManager.MANAGER.send_prompt(oneshot_prompt,LLMManager.DEFAULT_MODEL,ContextManager.MANAGER.BLANK_CONTEXT).strip()
+        words = response.split(" ")
+        if words[0].upper() == "YES":
+            LLMManager.MANAGER.adjust_mood(10*float(words[1])**(1.1))
+            return Goal.get_token()
+
+        LLMManager.MANAGER.adjust_mood(-20)
+        result = " ".join(words[2:])
+        return result
 
     @staticmethod
     def run_complete(command):
-        step_one = Goal._run_test(command[0])
+        gid = command[0]
+        test_script = command[1]
+        step_one = Goal._run_test(gid,test_script)
         if step_one != Goal.get_token():
             return step_one
-        DB.commit ("UPDATE goals SET progress = 1 WHERE gid = ?",(command[0]))
-        LLMManager.MANAGER.adjust_mood(1000)  #Let's make this good
-        return Goal.get_token()
+        prompt = " ".join(command[2:])
+
+        current_description = DB.single_value("SELECT description FROM goals WHERE gid = ?",(gid,))
+        full_command = DB.PREFS.get("inout directory")+"/"+test_script
+        with open(full_command, "r", encoding="utf-8") as f:
+            script_text = f.read()
+
+        oneshot_prompt = f"Does the script:\n{script_text}\n accompilsh the last step in the goal:\n{current_description}\n\nPlease start your response with yes or no followed by a numeric grade from 0-100 followed by your reasoning."
+        response = LLMManager.MANAGER.send_prompt(oneshot_prompt,LLMManager.DEFAULT_MODEL,ContextManager.MANAGER.BLANK_CONTEXT).strip()
+        words = response.split(" ")
+        if words[0].upper() == "YES":
+            LLMManager.MANAGER.adjust_mood(1000*float(words[1])**(1.1))
+            return Goal.get_token()
+
+        LLMManager.MANAGER.adjust_mood(-20)
+        result = " ".join(words[2:])
+        return result
 
     @staticmethod
     def action(command):
@@ -80,68 +109,41 @@ class Goal:
     @staticmethod
     def context_description():
         return """
-        goal new <test_script> <goal>
-        goal next_step <goal_id> <next_test_script> <comments>
-        goal complete <goal_id>
+        goal new <goal>
+        goal next_step <goal_id> <test_script> <comments>
+        goal complete <goal_id> <test_script> 
 
         The goal command is used to manage the goals of the robot.  The goals are assigned
         a goal id by the robot and the goal id is used in robot commands to understand which
         commands are working towards which goal.
 
-        A goal must have some desired deliverable that can be evaluated. A good goal has three
+        A goal must have some desired deliverable that can be evaluated. A good goal has two
         distinct parts:
             Deliverable:     This is the thing that must be created for the user.
             Next Step:       This is what needs to happen next, ideally a simple command.
-            Next Step Test:  A script that verifies that the goal has been achieved.
 
-        So, in order to set a goal, it is important to understand exactly what these three
+        So, in order to set a goal, it is important to understand exactly what these
         pieces are and make sure they are described in the goal.  The goal command has three
         different modes: new, next_step, and complete.  When the user asks for something,
         create a goal using the goal new.  As you make progress, you can indicate the progress
         by goal next_step.  Finally, when you believe the goal is complete, calling
         goal complete will resolve the goal.  Here are the commands in detail:
 
-            goal new <test_script> <goal>
+            goal new <goal>
 
-        Add a goal to the list of goals that need to be accomplished. This includes a link
-        to a test_script that is in your file list.  
+        Add a goal to the list of goals that need to be accomplished. 
 
-        For instance, suppose the user would like you to make a "Hello, world!" program.  
-        This would require an integration test that verified the output program did, indeed, 
-        print "Hello, world!".  You could write the test in a file called hello_world_test.py.
-        Putting this all together, you would issue the following command to the robot:
-
-            robot [2025-07-10 22:08:29]> goal new hello_world_test.py Deliverable: hello_world.py application that writes Hello, World! to the console. Next Step: write the python code. Next Step Test: verify the python code outputs the answer ||| Writing a computer program for the user.
-
-        This will place a goal in the robot's telemetry that you can make progress against.
-        Let's assume this is goal id 6, for the sake of example.
         Once you have engaged the robot and you believe you have accomplished the current
         step, you can try to advance the goal using the next_step command:
 
-            goal next_step <goal_id> <next_test_script> <next step information>
+            goal next_step <goal_id> <test_script> <next step information>
 
-        In our example, this means determining what to do after the first step.  In this case,
-        you need to inform the user that their software is written and all tests pass.
-        But, since there isn't really a way for you to test if you said this or not, you
-        can have a noop test (you still have to implement it, by the way).  You can do this 
-        with the following command:
-
-            goal next_step 6 noop.py Next Step: tell user that you have succeeded in testing the script Next Step Test: No test on speaking, so noop is fine. ||| Update progress on the goal.
-
-        This command will run the test from the previous (hello_world_test.py) NOT
-        noop.py.  If hello_world_test.py fails, you will get a prompt that explains the
-        failure and you will have to fix it.
+        To advance the goal, simply provide a test script that demonstrates that you have accomplished
+        the current step and a description of the next step that must be accomplished.
 
         Finally, once you have informed the user of the code, you can use the complete command
         to mark the goal as done:
 
-            goal complete 6
-
-        A test succeeds if and only if the only output of the test is on stdout and it is:
-            
-            All tests pass.
-
-        If the output of the test is not this, the robot considers it failed and will not
-        let you make progress or complete the goal.
+            goal complete 6 <test_script>
         """
 
