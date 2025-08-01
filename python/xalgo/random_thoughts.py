@@ -17,7 +17,7 @@ class RandomThoughts:
 
     @staticmethod
     def prompt_in (prompt,model,context):
-        if random.random() < float(DB.PREFS.get(RandomThoughts.RANDOM_THOUGHTS_LIKELIHOOD,.5)):
+        if random.random() < float(DB.PREFS.get(RandomThoughts.RANDOM_THOUGHTS_LIKELIHOOD,.15)):
             thought_index = random.randint(0,len(RandomThoughts.RANDOM_THOUGHTS)-1)
             DB.queue_prompt(RandomThoughts.RANDOM_THOUGHTS[thought_index])
         return (prompt,model,context)
