@@ -38,8 +38,7 @@ class Goal:
             LLMManager.MANAGER.adjust_mood(-10)  
             return f"{script_to_run} failed: ERROR: {e}. Please understand why {script_to_run} is failing and debug the script"
         output = result.stdout + result.stderr
-#        if output.strip() != "All tests pass.":
-        if output.strip() not in ["one","1"]:
+        if output.strip() != "All tests pass.":
             LLMManager.MANAGER.adjust_mood(-2)  
             return f"{script_to_run} has failing tests. The output of the script is:\n{output}"
         LLMManager.MANAGER.adjust_mood(100) 
@@ -110,8 +109,8 @@ class Goal:
     def context_description():
         return """
         goal new <goal>
-        goal next_step <goal_id> <test_script> <comments>
-        goal complete <goal_id> <test_script> 
+        goal next_step <goal_id> <test_script.py> <comments>
+        goal complete <goal_id> <test_script.py> 
 
         The goal command is used to manage the goals of the robot.  The goals are assigned
         a goal id by the robot and the goal id is used in robot commands to understand which
@@ -136,14 +135,17 @@ class Goal:
         Once you have engaged the robot and you believe you have accomplished the current
         step, you can try to advance the goal using the next_step command:
 
-            goal next_step <goal_id> <test_script> <next step information>
+            goal next_step <goal_id> <test_script.py> <next step information>
 
         To advance the goal, simply provide a test script that demonstrates that you have accomplished
-        the current step and a description of the next step that must be accomplished.
+        the current step and a description of the next step that must be accomplished.  The script
+        must be python and output the following string exactly: "All tests pass."
 
         Finally, once you have informed the user of the code, you can use the complete command
         to mark the goal as done:
 
-            goal complete 6 <test_script>
+            goal complete 6 <test_script.py>
+
+        Just as before, the command must be python and output exactly: "All tests pass."
         """
 

@@ -88,7 +88,8 @@ def main():
         os.makedirs(DB.PREFS.get("inout directory"), exist_ok=True)
 
     if args.list_prefs:
-        print(DB.PREFS._preferences)
+        for k,v in DB.PREFS._preferences.items():
+            print(f"'{k}': '{v}'")
         exit(0)
 
     if args.set_pref_key:

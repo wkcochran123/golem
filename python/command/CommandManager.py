@@ -14,6 +14,7 @@ from .python_script import PythonScript
 from .speak import Speak
 
 from db import DB,Prefs
+from llm import LLMManager
 
 class CommandManager:
     """
@@ -62,7 +63,17 @@ class CommandManager:
         for cmd in self.commands:
             if cmd.get_token() == first_word:
                 print (f"Running command '{command}'")
-                result = cmd.action(command)
+                if command.split(" ")[0] != "goal":
+
+                    sql = "select count(*) from goals where progress != 1.0"
+                    x= DB.single_value(sql) 
+                    if x != 0:
+                        result = cmd.action(command)
+                    else:
+                        result = "ERROR: THERE ARE NO ACTIVE GOALS"
+                        LLMManager.MANAGER.adjust_mood(-1000)
+                else:
+                    result = cmd.action(command)
                 print (f"Got result:")
                 DB.add_console_line(command,result,DB.cdt())
                 return result

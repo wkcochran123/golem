@@ -57,6 +57,11 @@ class Completions:
         print(f"headers: {headers}")
         print(f"num messages: {len(payload)}")
         print(f"model: {model}")
+        for msg in messages:
+            role = msg["role"]
+            content = msg["content"]
+            print(f"{role}:\n{content}\n")
+
         try:
             response = requests.post(
                 full_url, headers=headers, data=json.dumps(payload), timeout=3000
