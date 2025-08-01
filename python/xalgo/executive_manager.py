@@ -1,6 +1,7 @@
 from .random_thoughts import RandomThoughts
 from .mark_progress import MarkProgress
 from .make_progress import MakeProgress
+from .evaluate import Evaluate
 from db import DB
 from llm import LLMManager
 
@@ -15,12 +16,13 @@ class ExecutiveManager:
 
     def __init__ (self):
         self.all_xrules = [
+                Evaluate,
                 RandomThoughts,
                 MarkProgress,
                 MakeProgress,
                 ]
         db_pref = [x.get_token() for x in self.all_xrules]
-        xrules = DB.PREFS.get(ExecutiveManager.XM_LIST,",".join(db_pref))
+        xrules = DB.PREFS.get(ExecutiveManager.XM_LIST," ".join(db_pref)).split(" ")
         self.rules = []
         for rule in xrules:
             for t in self.all_xrules:
@@ -57,5 +59,6 @@ class ExecutiveManager:
 
     def command_out (self,prompt,response,output,context):
         for x in self.rules:
+            print (f"Doing this for {x}")
             x.command_out(prompt,response,output,context)
         pass

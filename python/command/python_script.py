@@ -1,4 +1,5 @@
 import subprocess
+import os
 from db import DB,Prefs
 from llm import LLMManager
 
@@ -16,6 +17,8 @@ class PythonScript:
     def action(command):
         words = command.split(" ")
         inout_path = DB.PREFS.get(DB.INOUT_DIRECTORY)
+        dir_cache = os.getcwd();
+        os.chdir(inout_path);
         words[1] = f"{inout_path}/{words[1]}"
         cmd = ["python"] + words[1:]
         try:
@@ -28,6 +31,7 @@ class PythonScript:
             LLMManager.MANAGER.adjust_mood(-5)
         else:
             LLMManager.MANAGER.adjust_mood(100)
+        os.chdir(dir_cache);
         return result.stdout + result.stderr
 
 

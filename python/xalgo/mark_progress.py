@@ -10,16 +10,16 @@ class MarkProgress:
         return "mark_progress"
 
     @staticmethod
-    def prompt_in (self,prompt: str ,model: str,context: str) -> (str,str,str):
+    def prompt_in (prompt: str ,model: str,context: str) -> (str,str,str):
         if random.random() < float(DB.PREFS.get(MarkProgress.MARK_PROGRESS_LIKELIHOOD,.1)):
             DB.queue_prompt("Mark progress on a goal")
-        return prompt,model,context
+        return (prompt,model,context)
 
 
     @staticmethod
-    def response_out(self,prompt: str,response: str,context: str) -> (str,str,str):
+    def response_out(prompt: str,response: str,context: str) -> (str,str,str):
         return (prompt,response,context)
 
     @staticmethod
-    def command_out(self,prompt,response,output,context):
+    def command_out(prompt,response,output,context):
         pass

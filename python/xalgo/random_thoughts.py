@@ -16,16 +16,17 @@ class RandomThoughts:
         return "random_thoughts"
 
     @staticmethod
-    def prompt_in (self,prompt,context):
+    def prompt_in (prompt,model,context):
         if random.random() < float(DB.PREFS.get(RandomThoughts.RANDOM_THOUGHTS_LIKELIHOOD,.5)):
-            thought_index = random.randint(0,len(RandomThought.RANDOM_THOUGHTS))
-            DB.queue_prompt(RandomThought.RANDOM_THOUGHTS[thought_indes])
+            thought_index = random.randint(0,len(RandomThoughts.RANDOM_THOUGHTS)-1)
+            DB.queue_prompt(RandomThoughts.RANDOM_THOUGHTS[thought_index])
+        return (prompt,model,context)
 
 
     @staticmethod
-    def response_out(self,prompt,response,context):
+    def response_out(prompt,response,context):
         return (prompt,response,context)
 
     @staticmethod
-    def command_out(self,prompt,response,output,context):
+    def command_out(prompt,response,output,context):
         pass
