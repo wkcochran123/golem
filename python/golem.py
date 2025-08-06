@@ -7,6 +7,7 @@ import argparse
 import os
 import shutil
 import subprocess
+import yaml
 
 
 def build_argparse():
@@ -49,6 +50,16 @@ def build_argparse():
         "--stop", action="store_true", help="Start the robot prompt pump"
     )
     parser.add_argument("--prompt", default=None, help="Send the golem a prompt")
+    parser.add_argument(
+        "--export_prefs",
+        default=None,
+        help="Export the current preferences to file",
+    )
+    parser.add_argument(
+        "--import_prefs",
+        default=None,
+        help="Import preferences from file",
+    )
     return parser.parse_args()
 
 
@@ -88,7 +99,7 @@ def main():
         os.makedirs(DB.PREFS.get("inout directory"), exist_ok=True)
 
     if args.list_prefs:
-        for k,v in DB.PREFS._preferences.items():
+        for k, v in DB.PREFS._preferences.items():
             print(f"'{k}': '{v}'")
         exit(0)
 
@@ -102,6 +113,22 @@ def main():
             DB.PREFS.drop(args.drop_pref_key)
         except KeyError:
             print(f"No such preference key: {args.drop_pref_key}")
+            exit(0)
+
+    if args.export_prefs:
+        with open(args.export_prefs, "w") as f:
+            yaml.safe_dump(DB.PREFS._preferences, f)
+        exit(0)
+
+    if args.import_prefs:
+        try:
+            with open(args.import_prefs, "r") as f:
+                loaded_prefs = yaml.safe_load(f)
+                for k, v in loaded_prefs.items():
+                    DB.PREFS.set(k, v)
+            exit(0)
+        except Exception as e:
+            print(f"Error importing {args.import_prefs}:\n {e}")
             exit(0)
 
     command_manager = CommandManager()

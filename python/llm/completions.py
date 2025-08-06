@@ -61,7 +61,10 @@ class Completions:
             role = msg["role"]
             content = msg["content"]
             print(f"{role}:\n{content}\n")
-
+        DB.commit(
+            "INSERT INTO prompts (timestamp, prompt) VALUES (?, ?)",
+            (DB.cdt(), json.dumps(payload)),
+        )
         try:
             response = requests.post(
                 full_url, headers=headers, data=json.dumps(payload), timeout=3000
