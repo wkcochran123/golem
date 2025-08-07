@@ -165,6 +165,7 @@ class DB:
         cur.execute("DROP TABLE IF EXISTS last_boiler")
         cur.execute("DROP TABLE IF EXISTS thoughts")
         cur.execute("DROP TABLE IF EXISTS preferences")
+        cur.execute("DROP TABLE IF EXISTS prompts")
         cur.execute(
             """
                     create table preferences (
@@ -258,6 +259,14 @@ class DB:
                     create table mood (
                     mid integer primary key,
                     mood integer not null
+                    )"""
+        )
+        cur.execute(
+            """
+                    create table prompts (
+                    pid integer primary key,
+                    timestamp text not null,
+                    prompt text
                     )"""
         )
         conn.commit()
