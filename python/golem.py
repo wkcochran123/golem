@@ -12,13 +12,14 @@ import yaml
 import os
 import sys
 
+
 def daemonize(script_path):
     pid = os.fork()
     if pid > 0:
         sys.exit(0)
 
-    os.setsid()  
-    os.umask(0) 
+    os.setsid()
+    os.umask(0)
 
     pid = os.fork()
     if pid > 0:
@@ -26,7 +27,7 @@ def daemonize(script_path):
 
     sys.stdout.flush()
     sys.stderr.flush()
-    with open('/dev/null', 'w') as devnull:
+    with open("/dev/null", "w") as devnull:
         os.dup2(devnull.fileno(), 0)
         os.dup2(devnull.fileno(), 1)
         os.dup2(devnull.fileno(), 2)
@@ -83,6 +84,12 @@ def build_argparse():
         "--import_prefs",
         default=None,
         help="Import preferences from file",
+    )
+    parser.add_argument(
+        "--log_level",
+        default=None,
+        choices=["WARNING", "INFO", "DEBUG"],
+        help="Set the log level",
     )
     return parser.parse_args()
 
@@ -148,12 +155,26 @@ def main():
         try:
             with open(args.import_prefs, "r") as f:
                 loaded_prefs = yaml.safe_load(f)
-                for k, v in loaded_prefs.items():
-                    DB.PREFS.set(k, v)
+                if loaded_prefs:
+                    for k, v in loaded_prefs.items():
+                        DB.PREFS.set(k, v)
+                    print(f"Successfully imported preferences from {args.import_prefs}")
+                else:
+                    print(f"File {args.import_prefs} is empty or invalid")
             exit(0)
+        except FileNotFoundError:
+            print(f"Error: File not found: {args.import_prefs}")
+            exit(1)
+        except yaml.YAMLError as e:
+            print(f"Error parsing YAML in: {args.import_prefs}")
+            exit(1)
         except Exception as e:
             print(f"Error importing {args.import_prefs}:\n {e}")
-            exit(0)
+            exit(1)
+
+    if args.log_level:
+        DB.PREFS.set("log level", args.log_level)
+        exit(1)
 
     command_manager = CommandManager()
     if args.enable_command is not None:
@@ -174,8 +195,8 @@ def main():
         exit(0)
 
     if args.start:
-#        daemonize(args.root_directory + "/ctrl.py")
-        print ("Command and control started")
+        #        daemonize(args.root_directory + "/ctrl.py")
+        print("Command and control started")
         run_infinite_loop(
             llm_manager, executive_manager, context_manager, command_manager
         )

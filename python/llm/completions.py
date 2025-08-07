@@ -3,19 +3,22 @@ import requests
 import json
 import time
 
+# import logging
+# from db.DBLogger import SQLiteHandler
+
 
 class Completions:
 
     API_ENDPOINT = "chat/completion endpoint"
     API_ENDPOINT_DEFAULT = "v1/chat/completions"
-    API_ENDPOINT_DESCRIPTION = '''
+    API_ENDPOINT_DESCRIPTION = """
     This is the local endpoint, most likely to be at v1/chat/completions
-    '''
+    """
 
     URL = "chat/completion url"
-    URL_DESCRIPTION = '''
+    URL_DESCRIPTION = """
     This is the url that expects the v1/chat/completions endpoint to exist. http[s]://<ip address>:<port>
-    '''
+    """
     DEFAULT_MODEL = "llm default model"
     DEFAULT_SLOW = "None"
     MAX_TOKENS = "llm max tokens"
@@ -27,6 +30,10 @@ class Completions:
     @staticmethod
     def send_prompt(prompt: str, model: str, context: str, chat_log: []) -> str:
         api_key = DB.PREFS.get("api key", "")
+        #        logger = logging.getLogger(__name__)
+        #        db_handler = SQLiteHandler(DB.DB_PATH)
+        # formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+        # db_handler.setFormatter(formatter)
         print("----------------- start send_prompt")
         if api_key == "":
             headers = {"Content-Type": "application/json"}
@@ -36,7 +43,11 @@ class Completions:
                 "Content-Type": "application/json",
             }
 
-        endpoint = DB.PREFS.get(pref=Completions.API_ENDPOINT, default=Completions.API_ENDPOINT_DEFAULT, description=Completions.API_ENDPOINT_DESCRIPTION)
+        endpoint = DB.PREFS.get(
+            pref=Completions.API_ENDPOINT,
+            default=Completions.API_ENDPOINT_DEFAULT,
+            description=Completions.API_ENDPOINT_DESCRIPTION,
+        )
         url = DB.PREFS.get(Completions.URL)  # This will stall for input on first run
 
         messages = [
@@ -60,19 +71,16 @@ class Completions:
             "max_tokens": max_tokens,  # Keep unlimited for direct requests
             "stream": False,
         }
-        full_url = DB.PREFS.get(Completions.URL) + "/" + DB.PREFS.get(Completions.API_ENDPOINT)
-        print(f"full url: {full_url}")
-        print(f"headers: {headers}")
-        print(f"num messages: {len(payload)}")
-        print(f"model: {model}")
-        for msg in messages:
-            role = msg["role"]
-            content = msg["content"]
-            print(f"{role}:\n{content}\n")
-        DB.commit(
-            "INSERT INTO prompts (timestamp, prompt) VALUES (?, ?)",
-            (DB.cdt(), json.dumps(payload)),
+        full_url = (
+            DB.PREFS.get(Completions.URL) + "/" + DB.PREFS.get(Completions.API_ENDPOINT)
         )
+        if DB.PREFS.get("log level", default="WARNING") in ("INFO", "DEBUG"):
+            print(f"Asking LLM to think at: {full_url}")
+        if DB.PREFS.get("log level", default="WARNING") in ("INFO", "DEBUG"):
+            DB.commit(
+                "INSERT INTO prompts (level, timestamp, prompt) VALUES (?, ?, ?)",
+                (DB.PREFS.get("log level"), DB.cdt(), json.dumps(payload)),
+            )
         try:
             response = requests.post(
                 full_url, headers=headers, data=json.dumps(payload), timeout=3000
