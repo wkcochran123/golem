@@ -128,7 +128,10 @@ class DB:
 
     @staticmethod
     def reset():
-        DB.URL = DB.PREFS.get("chat/completion url", description="This is the url that expects the v1/chat/completions endpoint to exist. http[s]://<ip address>:<port>")
+        DB.URL = DB.PREFS.get(
+            "chat/completion url",
+            description="This is the url that expects the v1/chat/completions endpoint to exist. http[s]://<ip address>:<port>",
+        )
         os.remove(DB.DB_PATH)
         DB.stat_db(None)
 
@@ -150,7 +153,11 @@ class DB:
 
         DB.PREFS = Prefs()
         if DB.URL:
-            DB.PREFS.set("chat/completion url", DB.URL, description="This is the url that expects the v1/chat/completions endpoint to exist. http[s]://<ip address>:<port>")
+            DB.PREFS.set(
+                "chat/completion url",
+                DB.URL,
+                description="This is the url that expects the v1/chat/completions endpoint to exist. http[s]://<ip address>:<port>",
+            )
         DB.URL = None
 
     @staticmethod
@@ -267,6 +274,7 @@ class DB:
             """
                     create table prompts (
                     pid integer primary key,
+                    level integer,
                     timestamp text not null,
                     prompt text
                     )"""
@@ -302,14 +310,17 @@ class Prefs:
         return self._preferences[pref]
 
     def describe(self, pref, description):
-        self.set(pref,self.get(pref),description=description)
+        self.set(pref, self.get(pref), description=description)
 
     def set(self, pref, value, description="Description needed"):
         DB.commit("DELETE FROM preferences WHERE key = ?", (pref,))
-        DB.commit("INSERT INTO preferences (key,value,description) VALUES ( ? , ? , ? )", (pref, value,description))
+        DB.commit(
+            "INSERT INTO preferences (key,value,description) VALUES ( ? , ? , ? )",
+            (pref, value, description),
+        )
         if pref.startswith("chat"):
             if description.startswith("Des"):
-                asdf
+                print("asdf")
         self._preferences[pref] = value
 
     def drop(self, pref=None):
