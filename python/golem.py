@@ -9,6 +9,30 @@ import shutil
 import subprocess
 import yaml
 
+import os
+import sys
+
+def daemonize(script_path):
+    pid = os.fork()
+    if pid > 0:
+        sys.exit(0)
+
+    os.setsid()  
+    os.umask(0) 
+
+    pid = os.fork()
+    if pid > 0:
+        sys.exit(0)
+
+    sys.stdout.flush()
+    sys.stderr.flush()
+    with open('/dev/null', 'w') as devnull:
+        os.dup2(devnull.fileno(), 0)
+        os.dup2(devnull.fileno(), 1)
+        os.dup2(devnull.fileno(), 2)
+
+    os.execvp("python3", ["python3", script_path])
+
 
 def build_argparse():
     parser = argparse.ArgumentParser()
@@ -150,6 +174,8 @@ def main():
         exit(0)
 
     if args.start:
+#        daemonize(args.root_directory + "/ctrl.py")
+        print ("Command and control started")
         run_infinite_loop(
             llm_manager, executive_manager, context_manager, command_manager
         )
@@ -160,9 +186,7 @@ def main():
         exit(0)
 
     if args.prompt is not None:
-        DB.queue_prompt(
-            f"The user has provided a prompt.  Set a goal to help the user with their task.  The user's prompt:\n{args.prompt}"
-        )
+        DB.queue_prompt(f"{ContextManager.USER_PROMPT_START}{args.prompt}")
 
 
 if __name__ == "__main__":

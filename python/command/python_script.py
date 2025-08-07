@@ -25,6 +25,7 @@ class PythonScript:
             result = subprocess.run(cmd, capture_output=True, text=True, shell=False, timeout=300)
         except Exception as e:
             LLMManager.MANAGER.adjust_mood(-10)
+            os.chdir(dir_cache);
             return f"ERROR: {e}"
         if len(result.stderr) > 0:
             

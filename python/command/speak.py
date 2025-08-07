@@ -3,9 +3,10 @@ from db import DB,Prefs
 
 class Speak:
     """
-    NOOP
+    SPEAK
 
-    Tell the robot to do nothing
+    This will relay the message through the dialog on the control panel as well as render sound for playing
+    over bluetooth.
     """
 
     def __init__(self):
@@ -18,17 +19,17 @@ class Speak:
         params = {'text': text}
         speak_url = DB.PREFS.get("speak url")
 
-        total_url = requests.Request('GET', get_mac_url("speak",8001), params=params).prepare().url
-        response = requests.get(total_url)
+#        total_url = requests.Request('GET', get_mac_url("speak",8001), params=params).prepare().url
+#        response = requests.get(total_url)
 
-        if response.status_code == 200:
-            with open('/tmp/speech.m4a', 'wb') as f:
-                f.write(response.content)
-            subprocess.run(['ffplay', '-nodisp', '-autoexit', '/tmp/speech.m4a'])
-        else:
-            print(f"Error from TTS service: {response.status_code}")
+#        if response.status_code == 200:
+#            with open('/tmp/speech.m4a', 'wb') as f:
+#                f.write(response.content)
+#            subprocess.run(['ffplay', '-nodisp', '-autoexit', '/tmp/speech.m4a'])
+#        else:
+#            print(f"Error from TTS service: {response.status_code}")
 
-        return SPEAK
+        return "speak"
 
 
 

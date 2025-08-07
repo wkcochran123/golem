@@ -2,6 +2,7 @@ from db import DB,Prefs
 from llm import LLMManager
 from context import ContextManager
 import subprocess
+import os
 
 
 class Goal:
@@ -22,7 +23,7 @@ class Goal:
 
     @staticmethod
     def run_new(command):
-        goal = " ".join(command[1:])
+        goal = " ".join(command[0:])
         goal = f"{goal}. But before you get started, Brainstorm about the different ways to achieve the goal, then choose one and concentrate on it."
         DB.commit ("INSERT INTO goals (progress,timestamp,description) VALUES ( ? , ? , ?)",(0,DB.cdt(),goal))
         LLMManager.MANAGER.adjust_mood(100) 
@@ -30,18 +31,22 @@ class Goal:
 
     @staticmethod
     def _run_test(gid,script_to_run):
+        dir_cache = os.getcwd();
         full_command = DB.PREFS.get("inout directory")+"/"+script_to_run
         result = None
         try:
             result = subprocess.run(['python',full_command], capture_output=True, text=True, timeout=20)
         except Exception as e:
             LLMManager.MANAGER.adjust_mood(-10)  
+            os.chdir(dir_cache);
             return f"{script_to_run} failed: ERROR: {e}. Please understand why {script_to_run} is failing and debug the script"
         output = result.stdout + result.stderr
         if output.strip() != "All tests pass.":
             LLMManager.MANAGER.adjust_mood(-2)  
+            os.chdir(dir_cache);
             return f"{script_to_run} has failing tests. The output of the script is:\n{output}"
         LLMManager.MANAGER.adjust_mood(100) 
+        os.chdir(dir_cache);
         return Goal.get_token()
 
     @staticmethod
@@ -140,6 +145,8 @@ class Goal:
         To advance the goal, simply provide a test script that demonstrates that you have accomplished
         the current step and a description of the next step that must be accomplished.  The script
         must be python and output the following string exactly: "All tests pass."
+
+        ALL TEST SCRIPTS MUST BE WRITTEN IN PYTHON.
 
         Finally, once you have informed the user of the code, you can use the complete command
         to mark the goal as done:

@@ -15,6 +15,7 @@ class DB:
     def __init__(self):
         pass
 
+    @staticmethod
     def cdt():
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -127,7 +128,7 @@ class DB:
 
     @staticmethod
     def reset():
-        DB.URL = DB.PREFS.get("chat/completion url")
+        DB.URL = DB.PREFS.get("chat/completion url", description="This is the url that expects the v1/chat/completions endpoint to exist. http[s]://<ip address>:<port>")
         os.remove(DB.DB_PATH)
         DB.stat_db(None)
 
@@ -149,7 +150,7 @@ class DB:
 
         DB.PREFS = Prefs()
         if DB.URL:
-            DB.PREFS.set("chat/completion url", DB.URL)
+            DB.PREFS.set("chat/completion url", DB.URL, description="This is the url that expects the v1/chat/completions endpoint to exist. http[s]://<ip address>:<port>")
         DB.URL = None
 
     @staticmethod
@@ -171,7 +172,8 @@ class DB:
                     create table preferences (
                     pid integer primary key,
                     key text not null,
-                    value text not null
+                    value text not null,
+                    description not null
                     )"""
         )
         cur.execute(
@@ -287,21 +289,27 @@ class Prefs:
         for row in DB.select("select key, value from preferences", ()):
             self._preferences[row[0]] = row[1]
 
-    def get(self, pref, default=None):
+    def get(self, pref, default=None, description="Description needed"):
         if pref not in self._preferences:
             value = (
                 default
                 if default is not None
                 else input(
-                    f"Unknown preference '{pref}' and no default value was provided. Please input a value: "
+                    f"Unknown preference '{pref}' with descrption '{description}'. Please input a value: "
                 )
             )
-            self.set(pref, value)
+            self.set(pref, value, description=description)
         return self._preferences[pref]
 
-    def set(self, pref, value):
+    def describe(self, pref, description):
+        self.set(pref,self.get(pref),description=description)
+
+    def set(self, pref, value, description="Description needed"):
         DB.commit("DELETE FROM preferences WHERE key = ?", (pref,))
-        DB.commit("INSERT INTO preferences (key,value) VALUES ( ? , ?)", (pref, value))
+        DB.commit("INSERT INTO preferences (key,value,description) VALUES ( ? , ? , ? )", (pref, value,description))
+        if pref.startswith("chat"):
+            if description.startswith("Des"):
+                asdf
         self._preferences[pref] = value
 
     def drop(self, pref=None):

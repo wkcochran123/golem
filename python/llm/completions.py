@@ -7,7 +7,15 @@ import time
 class Completions:
 
     API_ENDPOINT = "chat/completion endpoint"
+    API_ENDPOINT_DEFAULT = "v1/chat/completions"
+    API_ENDPOINT_DESCRIPTION = '''
+    This is the local endpoint, most likely to be at v1/chat/completions
+    '''
+
     URL = "chat/completion url"
+    URL_DESCRIPTION = '''
+    This is the url that expects the v1/chat/completions endpoint to exist. http[s]://<ip address>:<port>
+    '''
     DEFAULT_MODEL = "llm default model"
     DEFAULT_SLOW = "None"
     MAX_TOKENS = "llm max tokens"
@@ -28,9 +36,8 @@ class Completions:
                 "Content-Type": "application/json",
             }
 
-        endpoint = DB.PREFS.get(Completions.API_ENDPOINT, "v1/chat/completions")
+        endpoint = DB.PREFS.get(pref=Completions.API_ENDPOINT, default=Completions.API_ENDPOINT_DEFAULT, description=Completions.API_ENDPOINT_DESCRIPTION)
         url = DB.PREFS.get(Completions.URL)  # This will stall for input on first run
-        full_url = url.strip("/") + "/" + endpoint
 
         messages = [
             {"role": "system", "content": context},
@@ -53,6 +60,7 @@ class Completions:
             "max_tokens": max_tokens,  # Keep unlimited for direct requests
             "stream": False,
         }
+        full_url = DB.PREFS.get(Completions.URL) + "/" + DB.PREFS.get(Completions.API_ENDPOINT)
         print(f"full url: {full_url}")
         print(f"headers: {headers}")
         print(f"num messages: {len(payload)}")

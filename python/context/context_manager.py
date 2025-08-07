@@ -19,6 +19,8 @@ class ContextManager:
     BLANK_CONTEXT_GENERATORS = 'blank_instructions'
     MANAGER = None
 
+    USER_PROMPT_START = "The user has provided a prompt. Set a goal to help the user with their task.  The user's prompt:\n"
+
     def __init__(self,command_manager):
         self.command_manager = command_manager
         self.all_context_generators = [

@@ -106,17 +106,10 @@ class Code:
             robot [2025-07-10 22:08:29]> python_script hello_world.py
             Hello, World!
 
-            robot [2025-07-10 22:08:29]> code refactor python hello_world.py Deliverable: Add some ascii art after the greeting.
+            robot [2025-07-10 22:08:29]> code refactor python hello_world.py Deliverable: Change message to say Goodbye!
             File written successfully.
 
             robot [2025-07-10 22:08:29]> python_script hello_world.py
-            Hello, World!
-               _   _          _
-              | | | |        | |
-              |_| |_| _   _ | | ___
-                 | | | | | | || / __|
-                 | | | | | | || \__
-                 |_| |_| |_| ||___/
-
+            GoodBye!
         """
 
