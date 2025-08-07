@@ -62,8 +62,7 @@ class CommandManager:
         first_word = command.split(" ")[0]
         for cmd in self.commands:
             if cmd.get_token() == first_word:
-                print (f"Running command '{command}'")
-                if command.split(" ")[0] != "goal":
+                if command.split(" ")[0] not in ["goal","noop","file"]:
 
                     sql = "select count(*) from goals where progress != 1.0"
                     x= DB.single_value(sql) 

@@ -111,11 +111,12 @@ def robot_console():
 @app.route("/dialog")
 def dialog():
     result = "<font size=+2>Robot Dialog</font><br>&nbsp;<br><table cellpadding=8><tr><th align=left>User</th><th align=right>Robot</th></tr>"
-    for row in DB.select("SELECT stimuli.prompt, response,response from stimuli,response WHERE stimuli.sid = response.sid"):
+    for row in DB.select("SELECT stimuli.prompt, response.response from stimuli,response WHERE stimuli.sid = response.sid"):
         if row[0].startswith(ContextManager.USER_PROMPT_START):
             result = result + f"<tr><td bgcolor=202060 colspan=2 align=left>{fix_text(row[0].split(ContextManager.USER_PROMPT_START)[1])}</td></tr>"
-        if row[1].startswith("speak"):
-            result = result + f"<tr><td colspan=2 align=right>{fix_text(row[1])}</td></tr>"
+        if row[1].strip().startswith("speak"):
+            words = row[1].strip().split("speak")[1].split("|||")[0]
+            result = result + f"<tr><td colspan=2 align=right>{fix_text(words)}</td></tr>"
     for row in DB.select("SELECT prompt from stimuli WHERE sid NOT IN (SELECT sid FROM response)"):
         if row[0].startswith(ContextManager.USER_PROMPT_START):
             result = result + f"<tr><td bgcolor=202060 colspan=2 align=left>{fix_text(row[0].split(ContextManager.USER_PROMPT_START)[1])}</td></tr>"
@@ -187,6 +188,8 @@ function refresh() {
 
 setTimeout(refresh, 1000);
 
+let display_data = ""
+
 async function fetchAndDisplay(endpoint) {
     try {
       const response = await fetch(endpoint);
@@ -195,7 +198,10 @@ async function fetchAndDisplay(endpoint) {
       }
 
       const data = await response.text(); // or .json() if expecting JSON
-      document.getElementById("display").innerHTML = data;
+      if (display_data != data) {
+          document.getElementById("display").innerHTML = data;
+          display_data = data
+      }
       current_screen = endpoint
     } catch (error) {
       console.error("Fetch error:", error);
