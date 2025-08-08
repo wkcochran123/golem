@@ -32,5 +32,6 @@ class Evaluate:
             lvl = float (DB.PREFS.get(Evaluate.EVALUATE_RATE,Evaluate.DEFAULT_EVALUATE_RATE))
             if rnd > lvl:
                 return
-            evaluate_prompt = f"If your last {cmd} command succeed, please run an evaluaion on the file to make sure the file is up to part."
-            DB.queue_prompt(evaluate_prompt)
+            if DB.single_value ("select count(*) from stimuli where prompt like ? and sid not in (select sid from response)",("If your last % command succeed",)) < 1:
+                evaluate_prompt = f"If your last {cmd} command succeeded, please run an evaluaion on the file to make sure the file is up to part."
+                DB.queue_prompt(evaluate_prompt)

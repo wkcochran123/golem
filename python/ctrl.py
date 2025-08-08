@@ -31,6 +31,9 @@ def build_argparse():
 def fix_text(text):
     return html.escape(text).replace("\n","&nbsp;<br>")
 
+def title(text):
+    return f"<font size=+2>{text}</font><br>&nbsp;</br>"
+
 @app.route("/send", methods=["POST"])
 def send():
     prompt = ContextManager.USER_PROMPT_START + request.get_json()["prompt"]
@@ -60,7 +63,7 @@ def mood():
 
 @app.route("/goals")
 def goals():
-    result = "<font size=+2>Goals</font><br>&nbsp;<br><div style=\"width: 800px; height: 600px; overflow: auto;\"><table><tr><th>gid</th><th>Progress</th><th>Timestamp</th><th>Description</th></tr>"
+    result = title("Goals") + "<div style=\"width: 800px; height: 600px; overflow: auto;\"><table><tr><th>gid</th><th>Progress</th><th>Timestamp</th><th>Description</th></tr>"
 
     odd = True
     for row in DB.select("SELECT gid, progress, timestamp, description FROM goals ORDER BY gid"):
@@ -76,7 +79,7 @@ def goals():
 def files():
     files = [f for f in Path(DB.PREFS.get("inout directory")).iterdir() if f.is_file()]
 
-    answer = "<font size=+2>Files</font><br>&nbsp;<br>\n"
+    answer = title("Files")
     for file in sorted(files):
         fname = f"{file}".split("/")[-1]
         answer = (
@@ -107,10 +110,22 @@ def robot_console():
     result = result + "</table></div>"
     return result
 
+@app.route("/tables")
+def tables():
+    result = title("Tables")
+    result = result + "stimuli/response:<br><table><tr><th>sid</th><th>Prompt Timestamp</th><th>Prompt</th><th>Context</th><th>Response Timestamp</th><th>Response</th><th>Thinking (if available)</th></tr>"
+    for row in DB.select("select * from stimuli left outer join response on stimuli.sid = response.sid"):
+        if row[7] is not None:
+            result = result + f"<tr><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td>{row[3]}</td><td>{row[6]}</td><td onmouseover=callout(\"row[7]\") onmouseout=hidecallout()>{row[7][0:100]}...</td><td>{row[8][0:100]}...</td></tr>"
+        else:
+            result = result + f"<tr><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td>{row[3]}</td></tr>"
+    result = result + "</table>"
+    return result
+
 
 @app.route("/dialog")
 def dialog():
-    result = "<font size=+2>Robot Dialog</font><br>&nbsp;<br><table cellpadding=8><tr><th align=left>User</th><th align=right>Robot</th></tr>"
+    result = title("Robot Dialog") + "<table cellpadding=8><tr><th align=left>User</th><th align=right>Robot</th></tr>"
     for row in DB.select("SELECT stimuli.prompt, response.response from stimuli,response WHERE stimuli.sid = response.sid"):
         if row[0].startswith(ContextManager.USER_PROMPT_START):
             result = result + f"<tr><td bgcolor=202060 colspan=2 align=left>{fix_text(row[0].split(ContextManager.USER_PROMPT_START)[1])}</td></tr>"
@@ -128,14 +143,14 @@ def dialog():
 
 @app.route("/internals")
 def internals():
-    result = "<font size=+2>Current Internal State:</font><br>&nbsp;<br>"
+    result = title("Current Internal State")
     (prompt,context) = DB.pop_prompt()
     result = f"{result}Current context: {context}<br>\nCurrent prompt: {prompt}\n<br>"
     return result
 
 @app.route("/preferences")
 def preferences():
-    preferences = "<font size=+2>Preferences:</font><br>&nbsp;<br><table cellpadding=8><tr><th>Description:</th><th>Key:</th><th>Value:</th></tr>"
+    preferences = title("Preferences") + "<table cellpadding=8><tr><th>Description:</th><th>Key:</th><th>Value:</th></tr>"
 
     odd = True
     for pref_row in DB.select("SELECT pid,key,value,description FROM preferences ORDER BY pid"):
@@ -232,7 +247,7 @@ html, body {
   margin: 0;
   font-family: monospace;
   background-color: #101030;
-  color: #ffffff;
+  color: #ffd700;
 }
 
 a.link {
@@ -263,6 +278,15 @@ div.display {
   overflow-y: auto; /* optional: scroll if content overflows vertically */
 }
 
+div.callout {
+    position: absolute;
+    top: 40;
+    left: 40;
+    right: 600;
+    z-index: 10;
+
+}
+
  </style>
 </head>
 
@@ -276,12 +300,14 @@ div.display {
      <tr><td bgcolor="202060"><a href=# class="link" onclick="fetchAndDisplay('files')">Files</a></td></tr>
      <tr><td bgcolor="202060"><a href=# class="link" onclick="fetchAndDisplay('robot_console')">Console</a></td></tr>
      <tr><td bgcolor="202060"><a href=# class="link" onclick="fetchAndDisplay('internals')">Internals</a></td></tr>
+     <tr><td bgcolor="202060"><a href=# class="link" onclick="fetchAndDisplay('tables')">Tables</a></td></tr>
      <tr><td bgcolor="202060"><a href=# class="link" onclick="fetchAndDisplay('preferences')">Preferences</a></td></tr>
     </table>
-    <input type="checkbox" id="running">auto-update
+    <input type="checkbox" id="running" checked>auto-update
   </div>
   <div id="display" class="display">
   </div>
+  <div id="callout" class="callout">
  </body>
 </html>
     '''

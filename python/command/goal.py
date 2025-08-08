@@ -63,7 +63,7 @@ class Goal:
         with open(full_command, "r", encoding="utf-8") as f:
             script_text = f.read()
 
-        oneshot_prompt = f"Does the script:\n{script_text}\n accompilsh the next step in the goal:\n{current_description}\n\nPlease start your response with yes or no followed by a numeric grade from 0-100 followed by your reasoning."
+        oneshot_prompt = f"Does the following:\n{script_text}\n demonstrate the accompilshment of the next step in the goal:\n{current_description}\n\nPlease start your response with yes or no followed by a numeric grade from 0-100 followed by your reasoning."
         response = LLMManager.MANAGER.send_prompt(oneshot_prompt,LLMManager.DEFAULT_MODEL,ContextManager.MANAGER.BLANK_CONTEXT).strip()
         words = response.split(" ")
         if words[0].upper() == "YES":
@@ -88,7 +88,7 @@ class Goal:
         with open(full_command, "r", encoding="utf-8") as f:
             script_text = f.read()
 
-        oneshot_prompt = f"Does the script:\n{script_text}\n accompilsh the last step in the goal:\n{current_description}\n\nPlease start your response with yes or no followed by a numeric grade from 0-100 followed by your reasoning."
+        oneshot_prompt = f"Does the following:\n{script_text}\n demonstrate the accompilshment of the next step in the goal:\n{current_description}\n\nPlease start your response with yes or no followed by a numeric grade from 0-100 followed by your reasoning."
         response = LLMManager.MANAGER.send_prompt(oneshot_prompt,LLMManager.DEFAULT_MODEL,ContextManager.MANAGER.BLANK_CONTEXT).strip()
         words = response.split(" ")
         if words[0].upper() == "YES":
@@ -140,19 +140,15 @@ class Goal:
         Once you have engaged the robot and you believe you have accomplished the current
         step, you can try to advance the goal using the next_step command:
 
-            goal next_step <goal_id> <test_script.py> <next step information>
+            goal next_step <goal_id> <text file with proof> <next step information>
 
-        To advance the goal, simply provide a test script that demonstrates that you have accomplished
-        the current step and a description of the next step that must be accomplished.  The script
-        must be python and output the following string exactly: "All tests pass."
+        To advance the goal, simply provide a text file that demonstrates that you have accomplished
+        the current step and a description of the next step that must be accomplished. 
 
-        ALL TEST SCRIPTS MUST BE WRITTEN IN PYTHON.
 
         Finally, once you have informed the user of the code, you can use the complete command
         to mark the goal as done:
 
-            goal complete 6 <test_script.py>
-
-        Just as before, the command must be python and output exactly: "All tests pass."
+            goal complete 6 <text file with proof>
         """
 

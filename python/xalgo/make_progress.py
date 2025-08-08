@@ -9,12 +9,14 @@ class MakeProgress:
 
     @staticmethod
     def prompt_in (prompt,model,context):
-        open_goal_count = DB.single_value("select count(*) from goals where progress < 1.0")
-        if open_goal_count > 0:
-            DB.queue_prompt("Choose a goal and make progress on it")
-        if open_goal_count > 1:
-            if random.random() < 0.1:
-                DB.queue_prompt("Choose a different goal to work on for awhile")
+        open_prompts = DB.single_value("select count(*) from stimuli where sid not in (select sid from response)")
+        if open_prompts < 2:
+            open_goal_count = DB.single_value("select count(*) from goals where progress < 1.0")
+            if open_goal_count > 0:
+                DB.queue_prompt("Choose a goal and make progress on it")
+            if open_goal_count > 1:
+                if random.random() < 0.1:
+                    DB.queue_prompt("Choose a different goal to work on for awhile")
         return (prompt,model,context)
 
 
