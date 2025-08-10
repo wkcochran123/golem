@@ -1,4 +1,5 @@
 from llm import LLMManager
+from db import DB
 
 
 class Noop:
@@ -13,6 +14,10 @@ class Noop:
 
     @staticmethod
     def action(command):
+        open_goals = DB.single_value("select count(*) from goals where progress != 1.0")
+        if open_goals > 0:
+            LLMManager.MANAGER.adjust_mood(-100*open_goals)
+            return "ERROR: OPEN GOALS, NOOP IS NOT AN OPTION"
         LLMManager.MANAGER.adjust_mood(-1)  # Boredom
         return "noop"
 

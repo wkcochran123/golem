@@ -10,7 +10,7 @@ class Look:
         pass
 
     @staticmethod
-    def action(command,goal_id):
+    def action(command):
         pass
 
     @staticmethod

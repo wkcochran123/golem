@@ -57,6 +57,10 @@ class DB:
         conn.close()
 
     @staticmethod
+    def big_strip(text):
+        return ''.join([c for i, c in enumerate(s) if c not in " \t\n\"'"] or [s[0]])
+
+    @staticmethod
     def queue_prompt(prompt, context="robot"):
         DB.commit(
             "INSERT INTO stimuli (timestamp,prompt,context) VALUES(?,?,?)",

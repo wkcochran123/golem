@@ -27,6 +27,7 @@ class LLMManager:
 
     def adjust_mood(self,delta):
         self.mood = self.mood + delta
+        self.flush_mood()
 
     def flush_mood(self):
         DB.commit("INSERT INTO mood (mood) VALUES (?)",(self.mood,))
@@ -37,6 +38,7 @@ class LLMManager:
                                              model, 
                                              ContextManager.MANAGER.generate_context(context), 
                                              ContextManager.MANAGER.generate_chat(context))
-        DB.add_prompt_response(prompt,response,context,in_cdt)
+        if (context == "robot"):
+            DB.add_prompt_response(prompt,response,context,in_cdt)
         return response.split("</think>")[-1]
 

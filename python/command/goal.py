@@ -31,22 +31,22 @@ class Goal:
 
     @staticmethod
     def _run_test(gid,script_to_run):
-        dir_cache = os.getcwd();
-        full_command = DB.PREFS.get("inout directory")+"/"+script_to_run
-        result = None
-        try:
-            result = subprocess.run(['python',full_command], capture_output=True, text=True, timeout=20)
-        except Exception as e:
-            LLMManager.MANAGER.adjust_mood(-10)  
-            os.chdir(dir_cache);
-            return f"{script_to_run} failed: ERROR: {e}. Please understand why {script_to_run} is failing and debug the script"
-        output = result.stdout + result.stderr
-        if output.strip() != "All tests pass.":
-            LLMManager.MANAGER.adjust_mood(-2)  
-            os.chdir(dir_cache);
-            return f"{script_to_run} has failing tests. The output of the script is:\n{output}"
-        LLMManager.MANAGER.adjust_mood(100) 
-        os.chdir(dir_cache);
+#        dir_cache = os.getcwd();
+#        full_command = DB.PREFS.get("inout directory")+"/"+script_to_run
+#        result = None
+#        try:
+#            result = subprocess.run(['python',full_command], capture_output=True, text=True, timeout=20)
+#        except Exception as e:
+#            LLMManager.MANAGER.adjust_mood(-10)  
+#            os.chdir(dir_cache);
+#            return f"{script_to_run} failed: ERROR: {e}. Please understand why {script_to_run} is failing and debug the script"
+#        output = result.stdout + result.stderr
+#        if output.strip() != "All tests pass.":
+#            LLMManager.MANAGER.adjust_mood(-2)  
+#            os.chdir(dir_cache);
+#            return f"{script_to_run} has failing tests. The output of the script is:\n{output}"
+#        LLMManager.MANAGER.adjust_mood(100) 
+#        os.chdir(dir_cache);
         return Goal.get_token()
 
     @staticmethod
@@ -60,14 +60,24 @@ class Goal:
 
         current_description = DB.single_value("SELECT description FROM goals WHERE gid = ?",(gid,))
         full_command = DB.PREFS.get("inout directory")+"/"+test_script
-        with open(full_command, "r", encoding="utf-8") as f:
-            script_text = f.read()
+        try:
+            with open(full_command, "r", encoding="utf-8") as f:
+                script_text = f.read()
+        except Exception as e:
+            LLMManager.MANAGER.adjust_mood(-20)
+            return f"ERROR: Failed to open {full_command}\n {e}"
 
         oneshot_prompt = f"Does the following:\n{script_text}\n demonstrate the accompilshment of the next step in the goal:\n{current_description}\n\nPlease start your response with yes or no followed by a numeric grade from 0-100 followed by your reasoning."
         response = LLMManager.MANAGER.send_prompt(oneshot_prompt,LLMManager.DEFAULT_MODEL,ContextManager.MANAGER.BLANK_CONTEXT).strip()
         words = response.split(" ")
         if words[0].upper() == "YES":
-            LLMManager.MANAGER.adjust_mood(10*float(words[1])**(1.1))
+            LLMManager.MANAGER.adjust_mood(1000)
+            progress = DB.single_value("select progress from goals where gid = ?", (gid,))
+            description = DB.single_value("select description from goals where gid = ?", (gid,))
+
+
+            DB.commit("update goals set progress = ? where gid = ?", (progress + 0.001 , gid))
+            DB.commit("update goals set description = ? where gid = ?", (f"{description}\n{prompt}", gid))
             return Goal.get_token()
 
         LLMManager.MANAGER.adjust_mood(-20)
@@ -85,14 +95,19 @@ class Goal:
 
         current_description = DB.single_value("SELECT description FROM goals WHERE gid = ?",(gid,))
         full_command = DB.PREFS.get("inout directory")+"/"+test_script
-        with open(full_command, "r", encoding="utf-8") as f:
-            script_text = f.read()
+        try:
+            with open(full_command, "r", encoding="utf-8") as f:
+                script_text = f.read()
+        except Exception as e:
+            return f"ERROR: Failed to open {full_command}\n {e}"
 
         oneshot_prompt = f"Does the following:\n{script_text}\n demonstrate the accompilshment of the next step in the goal:\n{current_description}\n\nPlease start your response with yes or no followed by a numeric grade from 0-100 followed by your reasoning."
         response = LLMManager.MANAGER.send_prompt(oneshot_prompt,LLMManager.DEFAULT_MODEL,ContextManager.MANAGER.BLANK_CONTEXT).strip()
-        words = response.split(" ")
+        words = response.strip().split(" ")
+        print(words)
         if words[0].upper() == "YES":
-            LLMManager.MANAGER.adjust_mood(1000*float(words[1])**(1.1))
+#            LLMManager.MANAGER.adjust_mood(1000*float(words[1])**(1.1))
+            DB.commit("update goals set progress = 1.0 where gid = ?", (gid,))
             return Goal.get_token()
 
         LLMManager.MANAGER.adjust_mood(-20)
@@ -140,7 +155,7 @@ class Goal:
         Once you have engaged the robot and you believe you have accomplished the current
         step, you can try to advance the goal using the next_step command:
 
-            goal next_step <goal_id> <text file with proof> <next step information>
+            goal next_step <goal_id> <text file with proof> <complete description of next step>
 
         To advance the goal, simply provide a text file that demonstrates that you have accomplished
         the current step and a description of the next step that must be accomplished. 

@@ -1,4 +1,5 @@
 from .robot_instructions import RobotInstructions
+from .robot_score import RobotScore
 from .cortex_instructions import CortexInstructions
 from .robot_console import RobotConsole
 from .complete_chat_log import CompleteChatLog
@@ -14,17 +15,18 @@ class ContextManager:
     ROBOT_CONTEXT = 'robot'
     THINK_CONTEXT = 'think'
     BLANK_CONTEXT = 'blank'
-    ROBOT_CONTEXT_GENERATORS = 'robot_instructions,robot_goals,robot_console,robot_chat_log'
+    ROBOT_CONTEXT_GENERATORS = 'robot_instructions,robot_score,robot_goals,robot_console,robot_chat_log'
     THINK_CONTEXT_GENERATORS = 'cortex_instructions,robot_goals,robot_console,complete_chat_log'
     BLANK_CONTEXT_GENERATORS = 'blank_instructions'
     MANAGER = None
 
-    USER_PROMPT_START = "The USER has provided a prompt.  If prompt is about a new goal, remember to set a goal to accomplish this task:\n"
+    USER_PROMPT_START = "The USER has provided a prompt to the robot. As the cortex of the robot, you should evaluate the prompt to see if it can be handled with a simple 'speak' command.  If so, speak the answer.  If not, please make a goal to answer the request with the 'goal' command.\n"
 
     def __init__(self,command_manager):
         self.command_manager = command_manager
         self.all_context_generators = [
                 CortexInstructions,
+                RobotScore,
                 RobotInstructions,
                 RobotConsole,
                 CompleteChatLog,

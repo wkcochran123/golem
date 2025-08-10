@@ -18,7 +18,7 @@ class ExecutiveManager:
         self.all_xrules = [
                 Evaluate,
                 RandomThoughts,
-                MarkProgress,
+#                MarkProgress, 
                 MakeProgress,
                 ]
         db_pref = [x.get_token() for x in self.all_xrules]

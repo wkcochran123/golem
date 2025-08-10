@@ -23,10 +23,10 @@ class Evaluate:
 
     @staticmethod
     def command_out(prompt,response,output,context):
-
+        if random.random() < .5:
+            return
         cmds = DB.PREFS.get(Evaluate.EVALUATE_COMMANDS,Evaluate.DEFAULT_EVALUATE_COMMANDS).split(" ")
         cmd = response.strip().split(" ")[0]
-        print (f"Found {cmd}")
         if cmd in cmds:
             rnd = random.random();
             lvl = float (DB.PREFS.get(Evaluate.EVALUATE_RATE,Evaluate.DEFAULT_EVALUATE_RATE))

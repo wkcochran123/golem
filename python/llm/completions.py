@@ -49,6 +49,7 @@ class Completions:
             description=Completions.API_ENDPOINT_DESCRIPTION,
         )
         url = DB.PREFS.get(Completions.URL)  # This will stall for input on first run
+        print (url)
 
         messages = [
             {"role": "system", "content": context},
@@ -57,11 +58,6 @@ class Completions:
             messages.append({"role": role, "content": msg})
         messages.append({"role": "user", "content": prompt})
 
-        #        for message in messages:
-        #            role = message["role"]
-        #            content = message["content"]
-        #            print(f"m: {role}:\n{content}\n\n")
-        #        if model == None:
         model = DB.PREFS.get(Completions.DEFAULT_MODEL, Completions.DEFAULT_SLOW)
         max_tokens = int(DB.PREFS.get(Completions.MAX_TOKENS, -1))
         payload = {
@@ -95,6 +91,8 @@ class Completions:
         except requests.exceptions.RequestException as e:
             print(f"An error occurred: {e}")
 
+        print(full_url)
+        print(headers)
         print(f"response: {response}")
         time.sleep(1)
         try:

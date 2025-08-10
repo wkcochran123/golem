@@ -17,7 +17,7 @@ class Speak:
         words = command.split(" ")[1:]
         text = ' '.join(words)
         params = {'text': text}
-        speak_url = DB.PREFS.get("speak url")
+#        speak_url = DB.PREFS.get("speak url")
 
 #        total_url = requests.Request('GET', get_mac_url("speak",8001), params=params).prepare().url
 #        response = requests.get(total_url)

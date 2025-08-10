@@ -68,6 +68,17 @@ class Write:
     @staticmethod
     def context_description():
         return """
-        write ...
+        write
+
+        The write command can be used to write prose, poetry, or any sort of copy. 
+
+        write new <filename> <description of file, including desired media and demographic>
+
+        This wil write a new document.
+
+        write edit <filename> <description of changes>
+
+        This will edit the file.
+
         """
 

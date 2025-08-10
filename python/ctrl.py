@@ -114,28 +114,31 @@ def robot_console():
 def tables():
     result = title("Tables")
     result = result + "stimuli/response:<br><table><tr><th>sid</th><th>Prompt Timestamp</th><th>Prompt</th><th>Context</th><th>Response Timestamp</th><th>Response</th><th>Thinking (if available)</th></tr>"
+    odd = True
     for row in DB.select("select * from stimuli left outer join response on stimuli.sid = response.sid"):
+        tr = "<tr bgcolor=202060>" if odd else "<tr bgcolor=101030>"
+        odd = not odd
         if row[7] is not None:
-            result = result + f"<tr><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td>{row[3]}</td><td>{row[6]}</td><td onmouseover=callout(\"row[7]\") onmouseout=hidecallout()>{row[7][0:100]}...</td><td>{row[8][0:100]}...</td></tr>"
+            result = result + f"{tr}<td>{row[0]}</td><td>{row[1]}</td><td>{row[2][0:200]}...</td><td>{row[3]}</td><td>{row[6]}</td><td onmouseover=callout(\"row[7]\") onmouseout=hidecallout()>{row[7][0:200]}...</td><td>{row[8][0:200]}...</td></tr>"
         else:
-            result = result + f"<tr><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td>{row[3]}</td></tr>"
+            result = result + f"{tr}<td>{row[0]}</td><td>{row[1]}</td><td>{row[2][0:200]}...</td><td>{row[3]}</td></tr>"
     result = result + "</table>"
     return result
 
 
 @app.route("/dialog")
 def dialog():
-    result = title("Robot Dialog") + "<table cellpadding=8><tr><th align=left>User</th><th align=right>Robot</th></tr>"
+    result = title("Robot Dialog") + "<table cellpadding=8><tr><th align=left width=33%>User</th><th width=33%>&nbsp;</th><th align=right width=33%>Robot</th></tr>"
     for row in DB.select("SELECT stimuli.prompt, response.response from stimuli,response WHERE stimuli.sid = response.sid"):
         if row[0].startswith(ContextManager.USER_PROMPT_START):
-            result = result + f"<tr><td bgcolor=202060 colspan=2 align=left>{fix_text(row[0].split(ContextManager.USER_PROMPT_START)[1])}</td></tr>"
+            result = result + f"<tr><td bgcolor=202060 colspan=2 align=left>{fix_text(row[0].split(ContextManager.USER_PROMPT_START)[1])}</td><td></td></tr>"
         if row[1].strip().startswith("speak"):
             words = row[1].strip().split("speak")[1].split("|||")[0]
-            result = result + f"<tr><td colspan=2 align=right>{fix_text(words)}</td></tr>"
+            result = result + f"<tr><td></td><td colspan=2 bgcolor=202060 align=right>{fix_text(words)}</td></tr>"
     for row in DB.select("SELECT prompt from stimuli WHERE sid NOT IN (SELECT sid FROM response)"):
         if row[0].startswith(ContextManager.USER_PROMPT_START):
             result = result + f"<tr><td bgcolor=202060 colspan=2 align=left>{fix_text(row[0].split(ContextManager.USER_PROMPT_START)[1])}</td></tr>"
-    result = result + "<tr><td colspan=2><textarea rows=2 cols=100 id=\"prompt\"></textarea><input type=button value=\"send\" onclick=\"sendPrompt()\"></table>"
+    result = result + "<tr><td colspan=3><textarea rows=2 cols=100 id=\"prompt\"></textarea><input type=button value=\"send\" onclick=\"sendPrompt()\"></table>"
 
     return result
 

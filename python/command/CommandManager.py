@@ -57,6 +57,12 @@ class CommandManager:
                 return y
         return None
 
+    def get_commands(self):
+        answer = ""
+        for y in self.commands:
+            answer = answer + y.get_token() + "\n"
+        return answer.strip()
+
     def run_command(self,full_command):
         command = full_command.strip().split("|||")[0]
         first_word = command.split(" ")[0]
@@ -73,10 +79,12 @@ class CommandManager:
                         LLMManager.MANAGER.adjust_mood(-1000)
                 else:
                     result = cmd.action(command)
+                if result == cmd.get_token():
+                    LLMManager.MANAGER.adjust_mood(10)
                 print (f"Got result:")
                 DB.add_console_line(command,result,DB.cdt())
                 return result
-        return f"ERROR: Unknown command {first_word}"
+        return f"ERROR: Unknown command {first_word}.  Available commands: " + " ".join([x.get_token() for x in self.commands])
 
     def _write_prefs(self):
         pref_list = []
