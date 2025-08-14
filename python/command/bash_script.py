@@ -23,19 +23,13 @@ class BashScript:
     @staticmethod
     def action(command):
         words = command.split(" ")
-        inout_path = DB.PREFS.get("inout directory")
-        cur_dir = os.getcwd()
-        os.chdir(inout_path)
-        words[1] = f"{inout_path}/{words[1]}"
         cmd = ["bash"] + words[1:]
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, shell=False, timeout=300)
         except Exception as e:
             LLMManager.MANAGER.adjust_mood(-100)
-            os.chdir(cur_dir)
             return f"ERROR: {e}"
         LLMManager.MANAGER.adjust_mood(10)
-        os.chdir(cur_dir)
         return result.stdout + result.stderr
 
 

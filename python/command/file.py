@@ -10,14 +10,11 @@ class File:
 
     @staticmethod
     def _get_file_list():
-        inout_path = DB.PREFS.get("inout directory")
-        return "\n".join([d for d in os.listdir(inout_path)])
+        return "\n".join([d for d in os.listdir(os.getcwd())])
 
 
     @staticmethod
     def _read_file(fname):
-        inout_path = DB.PREFS.get("inout directory")
-        fname = f"{inout_path}/{fname}"
         try:
             with open(fname, 'r') as file:
                 contents = file.read()
@@ -27,6 +24,10 @@ class File:
 
 
     @staticmethod
+    def _chdir(dir):
+        os.chdir(dir)
+
+    @staticmethod
     def action(command):
         words = command.split(" ")
         subcommand = words[1]
@@ -34,6 +35,8 @@ class File:
             return File._get_file_list()
         if subcommand == "read":
             return File._read_file(words[2])
+        if subcommand == "chdir":
+            return File._chdir(words[2])
         return f"ERROR Unknown file subcommand: {subcommand}"
 
     @staticmethod
@@ -50,5 +53,8 @@ class File:
 
         file read <filename>
         This will read the file and place the contents in the telemetry.
+
+        file chdir <dir>
+        Change the current directory to read from.
         """
 

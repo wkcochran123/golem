@@ -34,6 +34,20 @@ class LLMManager:
 
     def send_prompt(self,prompt: str, model: str, context: str) -> str:
         in_cdt = DB.cdt()
+        full_context = ContextManager.MANAGER.generate_context(context)
+        full_chat = ContextManager.MANAGER.generate_chat(context)
+        full_record = f"Context:\n{full_context}\n"
+        full_record = full_record + "-----------------------------------------------------\n"
+        for side,msg in full_chat:
+            if side == "user":
+                full_record = full_record + f"User: {msg}\n"
+            else:
+                full_record = full_record + f"Assistant: {msg}\n"
+                full_record = full_record + "-----------------------------------------------------\n"
+
+        full_record = full_record + f"User: {prompt}\n"
+        DB.commit("update last_query set data = ? where bid = 1",(full_record,))
+        print(full_record)
         response = self.strategy.send_prompt(prompt, 
                                              model, 
                                              ContextManager.MANAGER.generate_context(context), 

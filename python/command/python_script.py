@@ -16,23 +16,17 @@ class PythonScript:
     @staticmethod
     def action(command):
         words = command.split(" ")
-        inout_path = DB.PREFS.get(DB.INOUT_DIRECTORY)
-        dir_cache = os.getcwd();
-        os.chdir(inout_path);
-        words[1] = f"{inout_path}/{words[1]}"
         cmd = ["python"] + words[1:]
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, shell=False, timeout=300)
         except Exception as e:
             LLMManager.MANAGER.adjust_mood(-10)
-            os.chdir(dir_cache);
             return f"ERROR: {e}"
         if len(result.stderr) > 0:
             
             LLMManager.MANAGER.adjust_mood(-5)
         else:
             LLMManager.MANAGER.adjust_mood(100)
-        os.chdir(dir_cache);
         return result.stdout + result.stderr
 
 

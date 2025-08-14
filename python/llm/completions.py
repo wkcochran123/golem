@@ -79,7 +79,7 @@ class Completions:
             )
         try:
             response = requests.post(
-                full_url, headers=headers, data=json.dumps(payload), timeout=3000
+                full_url, headers=headers, data=json.dumps(payload), timeout=6000
             )
             response.raise_for_status
         except requests.exceptions.Timeout:

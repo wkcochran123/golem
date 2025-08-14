@@ -7,9 +7,10 @@ from datetime import datetime
 from pathlib import Path
 import os
 from db import DB
+from context import ContextManager
+from command import CommandManager
 import html
 
-from context import ContextManager
 
 app = Flask(__name__)
 CORS(app)
@@ -94,7 +95,7 @@ def file(fname):
     name = DB.PREFS.get("inout directory")+f"/{fname}"
     with open(name, "r") as f:
         content = f.read()
-    return f"<pre>\n{content}\n</pre>"
+    return f"<pre>\n{fix_text(content)}\n</pre>"
 
 @app.route("/robot_console")
 def robot_console():
@@ -125,6 +126,12 @@ def tables():
     result = result + "</table>"
     return result
 
+@app.route("/context")
+def context():
+    context_manager = ContextManager(CommandManager())
+    context = context_manager.generate_context("robot")
+    return f"<pre>{context}</pre>"
+
 
 @app.route("/dialog")
 def dialog():
@@ -148,7 +155,9 @@ def dialog():
 def internals():
     result = title("Current Internal State")
     (prompt,context) = DB.pop_prompt()
-    result = f"{result}Current context: {context}<br>\nCurrent prompt: {prompt}\n<br>"
+    result = f"{result}Current context: {context}<br>\nCurrent prompt:\n<br>"
+    prompt = DB.single_value("select data from last_query where bid = 1")
+    result = result + f"<pre>\n{fix_text(prompt)}\n</pre>"
     return result
 
 @app.route("/preferences")
@@ -216,6 +225,8 @@ async function fetchAndDisplay(endpoint) {
       }
 
       const data = await response.text(); // or .json() if expecting JSON
+      if (display_data == "") {
+      }
       if (display_data != data) {
           document.getElementById("display").innerHTML = data;
           display_data = data
@@ -294,17 +305,18 @@ div.callout {
 </head>
 
  </head>
- <body>
+ <body onload="fetchAndDisplay('dialog')">
   <div id="menu" class="menu">
     <table cellpadding="6">
      <tr><th bgcolor="202060"><font color="FFFFFF">Main Menu</font></th></tr>
-     <tr><td bgcolor="202060"><a href=# class="link" onclick="fetchAndDisplay('dialog')">Dialog</a></td></tr>
-     <tr><td bgcolor="202060"><a href=# class="link" onclick="fetchAndDisplay('goals')">Goals</a></td></tr>
-     <tr><td bgcolor="202060"><a href=# class="link" onclick="fetchAndDisplay('files')">Files</a></td></tr>
-     <tr><td bgcolor="202060"><a href=# class="link" onclick="fetchAndDisplay('robot_console')">Console</a></td></tr>
-     <tr><td bgcolor="202060"><a href=# class="link" onclick="fetchAndDisplay('internals')">Internals</a></td></tr>
-     <tr><td bgcolor="202060"><a href=# class="link" onclick="fetchAndDisplay('tables')">Tables</a></td></tr>
-     <tr><td bgcolor="202060"><a href=# class="link" onclick="fetchAndDisplay('preferences')">Preferences</a></td></tr>
+     <tr><td bgcolor="202060" id=bg_dialog><a href=# class="link" onclick="fetchAndDisplay('dialog')">Dialog</a></td></tr>
+     <tr><td bgcolor="202060" id=bg_goals><a href=# class="link" onclick="fetchAndDisplay('goals')">Goals</a></td></tr>
+     <tr><td bgcolor="202060" id=bg_files><a href=# class="link" onclick="fetchAndDisplay('files')">Files</a></td></tr>
+     <tr><td bgcolor="202060" id=bg_robot_console><a href=# class="link" onclick="fetchAndDisplay('robot_console')">Console</a></td></tr>
+     <tr><td bgcolor="202060" id=bg_context><a href=# class="link" onclick="fetchAndDisplay('context')">Context</a></td></tr>
+     <tr><td bgcolor="202060" id=bg_internals><a href=# class="link" onclick="fetchAndDisplay('internals')">Internals</a></td></tr>
+     <tr><td bgcolor="202060" id=bg_tables><a href=# class="link" onclick="fetchAndDisplay('tables')">Tables</a></td></tr>
+     <tr><td bgcolor="202060" id=bg_preferences><a href=# class="link" onclick="fetchAndDisplay('preferences')">Preferences</a></td></tr>
     </table>
     <input type="checkbox" id="running" checked>auto-update
   </div>

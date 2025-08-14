@@ -75,7 +75,7 @@ class CommandManager:
                     if x != 0:
                         result = cmd.action(command)
                     else:
-                        result = "ERROR: THERE ARE NO ACTIVE GOALS"
+                        result = "ERROR: THERE ARE NO ACTIVE GOALS.  Please set a new goal to accomplist a task:\n\ngoal new <task>If you have nothing to do, simply noop.\n"
                         LLMManager.MANAGER.adjust_mood(-1000)
                 else:
                     result = cmd.action(command)

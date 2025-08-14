@@ -13,10 +13,9 @@ class Evaluate:
     def action(command):
         words = command.split(" ")[1:]
         filename = words[0]
-        inout_path = DB.PREFS.get(DB.INOUT_DIRECTORY)
         LLMManager.MANAGER.adjust_mood(1)  #Let's make this good
         try:
-            with open(f"{inout_path}/{filename}", "r") as f:
+            with open(f"{filename}", "r") as f:
                 data = f.read()
         except Exception as e:
             return f"ERROR: {e}"

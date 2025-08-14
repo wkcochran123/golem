@@ -95,6 +95,7 @@ def build_argparse():
 
 
 def run_infinite_loop(llm_manager, executive_manager, context_manager, command_manager):
+    os.chdir(DB.PREFS.get("inout directory"))
     ExecutiveManager.start()
     DB.PREFS.reload()  # Hot swapping prefs like a boss
     while ExecutiveManager.is_running():

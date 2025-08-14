@@ -247,7 +247,7 @@ class DB:
 
         cur.execute(
             """
-                    create table last_boiler (
+                    create table last_query (
                     bid integer primary key,
                     data text not null
                     )"""
@@ -255,7 +255,7 @@ class DB:
 
         cur.execute(
             """
-                    insert into last_boiler(data) values ("starting")
+                    insert into last_query(data) values ("starting")
                     """
         )
 

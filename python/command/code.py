@@ -19,9 +19,8 @@ class Code:
         lines = [line for line in result.split("\n") if not line.startswith("```")]
         LLMManager.MANAGER.adjust_mood(len(lines))
         code = "\n".join(lines)
-        inout_path = DB.PREFS.get(DB.INOUT_DIRECTORY)
         try:
-            with open(inout_path + "/" + filename, 'w') as file:
+            with open(filename, 'w') as file:
                 file.write(f"{code}\n")
         except Exception as e:
             return (f"Error: {e}")
@@ -32,9 +31,8 @@ class Code:
     def debug_code(words):
         lang = words[0]
         filename = words[1]
-        inout_path = DB.PREFS.get(DB.INOUT_DIRECTORY)
         try:
-            with open(f"{inout_path}/{filename}", "r") as f:
+            with open(f"{filename}", "r") as f:
                 data = f.read()
         except Exception as e:
             return f"ERROR: {e}"
@@ -44,9 +42,8 @@ class Code:
         result = LLMManager.MANAGER.send_prompt(prompt, LLMManager.DEFAULT_MODEL, ContextManager.THINK_CONTEXT)
         lines = [line for line in result.split("\n") if not line.startswith("```")]
         code = "\n".join(lines)
-        inout_path = DB.PREFS.get(DB.INOUT_DIRECTORY)
         try:
-            with open(inout_path + "/" + filename, 'w') as file:
+            with open(filename, 'w') as file:
                 file.write(f"{code}\n")
         except Exception as e:
             return (f"Error: {e}")
@@ -56,9 +53,8 @@ class Code:
     def refactor_code(words):
         lang = words[0]
         filename = words[1]
-        inout_path = DB.PREFS.get(DB.INOUT_DIRECTORY)
         try:
-            with open(f"{inout_path}/{filename}", "r") as f:
+            with open(f"{filename}", "r") as f:
                 data = f.read()
         except Exception as e:
             return f"ERROR: {e}"
@@ -68,9 +64,8 @@ class Code:
         result = LLMManager.MANAGER.send_prompt(prompt, LLMManager.DEFAULT_MODEL, ContextManager.THINK_CONTEXT)
         lines = [line for line in result.split("\n") if not line.startswith("```")]
         code = "\n".join(lines)
-        inout_path = DB.PREFS.get(DB.INOUT_DIRECTORY)
         try:
-            with open(inout_path + "/" + filename, 'w') as file:
+            with open(filename, 'w') as file:
                 file.write(f"{code}\n")
         except Exception as e:
             return (f"Error: {e}")

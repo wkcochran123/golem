@@ -59,13 +59,12 @@ class Goal:
         prompt = " ".join(command[2:])
 
         current_description = DB.single_value("SELECT description FROM goals WHERE gid = ?",(gid,))
-        full_command = DB.PREFS.get("inout directory")+"/"+test_script
         try:
-            with open(full_command, "r", encoding="utf-8") as f:
+            with open(test_script, "r", encoding="utf-8") as f:
                 script_text = f.read()
         except Exception as e:
             LLMManager.MANAGER.adjust_mood(-20)
-            return f"ERROR: Failed to open {full_command}\n {e}"
+            return f"ERROR: Failed to open {test_script}\n {e}"
 
         oneshot_prompt = f"Does the following:\n{script_text}\n demonstrate the accompilshment of the next step in the goal:\n{current_description}\n\nPlease start your response with yes or no followed by a numeric grade from 0-100 followed by your reasoning."
         response = LLMManager.MANAGER.send_prompt(oneshot_prompt,LLMManager.DEFAULT_MODEL,ContextManager.MANAGER.BLANK_CONTEXT).strip()
@@ -75,7 +74,11 @@ class Goal:
             progress = DB.single_value("select progress from goals where gid = ?", (gid,))
             description = DB.single_value("select description from goals where gid = ?", (gid,))
 
+            print (command)
+            print (response)
 
+            print ("Updating progrss {gid}: {progress}")
+            print ("Updating description {gid}: {description}\n{prompt}")
             DB.commit("update goals set progress = ? where gid = ?", (progress + 0.001 , gid))
             DB.commit("update goals set description = ? where gid = ?", (f"{description}\n{prompt}", gid))
             return Goal.get_token()
@@ -94,18 +97,19 @@ class Goal:
         prompt = " ".join(command[2:])
 
         current_description = DB.single_value("SELECT description FROM goals WHERE gid = ?",(gid,))
-        full_command = DB.PREFS.get("inout directory")+"/"+test_script
         try:
-            with open(full_command, "r", encoding="utf-8") as f:
+            with open(test_script, "r", encoding="utf-8") as f:
                 script_text = f.read()
         except Exception as e:
-            return f"ERROR: Failed to open {full_command}\n {e}"
+            return f"ERROR: Failed to open {test_script}\n {e}"
 
         oneshot_prompt = f"Does the following:\n{script_text}\n demonstrate the accompilshment of the next step in the goal:\n{current_description}\n\nPlease start your response with yes or no followed by a numeric grade from 0-100 followed by your reasoning."
         response = LLMManager.MANAGER.send_prompt(oneshot_prompt,LLMManager.DEFAULT_MODEL,ContextManager.MANAGER.BLANK_CONTEXT).strip()
         words = response.strip().split(" ")
         print(words)
         if words[0].upper() == "YES":
+            print (command)
+            print(response)
 #            LLMManager.MANAGER.adjust_mood(1000*float(words[1])**(1.1))
             DB.commit("update goals set progress = 1.0 where gid = ?", (gid,))
             return Goal.get_token()
