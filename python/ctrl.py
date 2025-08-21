@@ -61,10 +61,8 @@ def mood():
     rows = cur.fetchall()
     for row in rows:
         return f"{row[1]},{row[0]}"
-    return "0,-1"
-
     conn.close()
-    return answer
+    return "0,-1"
 
 
 @app.route("/goals")
@@ -238,20 +236,28 @@ def preferences():
 def prompt_log():
     prompt_log = (
         title("Prompt Log")
-        + "<table cellpadding=8><tr><th>Log Level</th><th>Timestamp</th><th>Prompt</th></r>"
+        + '<table cellpadding=8><tr><th>Log Level</th><th>Timestamp</th><th>Prompt</th></tr>'
     )
+    
     odd = True
     for prompt_row in DB.select(
         "SELECT level, timestamp, prompt FROM prompts ORDER BY timestamp DESC"
     ):
         tr = "<tr bgcolor=202060>" if odd else "<tr>"
         odd = not odd
+        
+        # Generate unique ID for each JSON section
+        row_id = f"json_{prompt_row[1].replace(' ', '_').replace(':', '-')}"
+        
         prompt_log = (
             prompt_log
-            + f'{tr}<td style="vertical-align: top;">{html.escape(prompt_row[0])}</td><td style="vertical-align: top;">{html.escape(prompt_row[1])}</td><td>{html.escape(prompt_row[2])}</td></tr>'
+            + f'{tr}<td style="vertical-align: top;">{html.escape(prompt_row[0])}</td>'
+            + f'<td style="vertical-align: top;">{html.escape(prompt_row[1])}</td>'
+            + f'<td><span class="json-toggle" onclick="toggleJson(\'{row_id}\')">📋 View JSON</span>'
+            + f'<div id="{row_id}" class="json-content">{html.escape(prompt_row[2])}</div></td></tr>'
         )
 
-    result = f"{prompt_log}"
+    result = f"{prompt_log}</table>"
     return result
 
 
@@ -284,6 +290,23 @@ async function sendPrompt() {
       console.log("Server response:", result);
     } catch (error) {
       console.error("Fetch error:", error);
+    }
+}
+
+function toggleJson(id) {
+    const element = document.getElementById(id);
+    if (element.style.display === 'none') {
+        element.style.display = 'block';
+        // Format the JSON when showing
+        const rawContent = element.textContent;
+        try {
+            const jsonObj = JSON.parse(rawContent);
+            element.textContent = JSON.stringify(jsonObj, null, 2);
+        } catch (e) {
+            // If not valid JSON, leave as is
+        }
+    } else {
+        element.style.display = 'none';
     }
 }
 
@@ -356,6 +379,27 @@ a.link {
 a.link:hover {
   color: #FFA500; /* orange-gold on hover */
   text-decoration: underline;
+}
+
+.json-toggle {
+  cursor: pointer;
+  color: #FFD700;
+  text-decoration: underline;
+  font-weight: bold;
+}
+.json-toggle:hover {
+  color: #FFA500;
+}
+.json-content {
+  display: none;
+  background-color: #202050;
+  padding: 8px;
+  margin: 4px 0;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  font-family: monospace;
+  max-height: 400px;
+  overflow: auto;
 }
 
 div.menu {
