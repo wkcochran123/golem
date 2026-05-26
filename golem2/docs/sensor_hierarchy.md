@@ -1,23 +1,32 @@
 # Sensor Hierarchy For The Basement Robot
 
 This document is the first real-build hierarchy for the threshold-control robot.
-It keeps the LLM above the reflex loop: the LLM chooses regimes and adjusts
-thresholds/urgency, while Pi-side code owns fresh sensor reads, latch updates,
-and motor safety.
+It keeps the AI host above the reflex loop: AI services may propose normalized
+thresholds in `[0.0, 1.0]`, while the Ubuntu robot runtime owns fresh sensor
+reads, latch updates, validation, and motor safety.
 
 ## Runtime Layers
 
 ```text
 Mac Studio
-  LM Studio policy host
-  PyTorch model host
+  RYOT, Codex, Claude, operator console
+  AI REST proxy
+  MLX/Transformers selector host
+  PyTorch/vision model host
   sleep replay over event ledgers
 
+Ubuntu VM
+  Linux robot builds and tests
+  robot services
+  sensor data aggregation
+  threshold authority and validation
+  local logs and event ledgers
+
 Raspberry Pi
-  sensor drivers
-  freshness gates
-  projection latches
-  reflex motor executor
+  optional physical sensor/actuator bridge
+  freshness gates close to hardware
+  projection latches close to hardware
+  reflex motor executor if deployed off the VM
   telemetry REST surfaces
 
 Optional Arduino
@@ -34,9 +43,37 @@ Robot body
   independent kill switch
 ```
 
-The Pi must be able to continue a safe reflex loop if the Mac Studio is slow,
-unavailable, or training. The Mac can improve models and choose policy regimes;
-it is not the safety boundary.
+The Ubuntu robot runtime, and any Pi or Arduino tier below it, must be able to
+continue a safe reflex loop if the Mac Studio AI proxy is slow, unavailable, or
+training. The Mac can improve models and propose threshold changes; it is not
+the safety boundary.
+
+The Mac Studio GPU is not treated as a native Ubuntu VM device. If a runtime
+needs Apple GPU acceleration, expose it as a Mac-hosted service and call it
+from Ubuntu over the AI proxy instead of relying on VM GPU passthrough.
+
+## AI Threshold Contract
+
+AI output is advisory and limited to threshold proposals:
+
+```text
+Ubuntu gathers reality.
+Mac Studio interprets reality.
+Ubuntu validates and acts.
+```
+
+Validation lives on Ubuntu in a threshold authority module:
+
+- threshold names must be allowlisted;
+- threshold values must be floats in `[0.0, 1.0]`;
+- proposals must respect max delta, cooldown, and TTL;
+- stale or malformed proposals are ignored;
+- every accepted or rejected proposal is logged;
+- AI-originated actuator commands are invalid by construction.
+
+Hardware commands come only from local robot logic after validation. AI may
+move thresholds; it cannot control motors, relays, GPIO, serial devices, or
+power.
 
 ## Sensor Table
 
@@ -94,6 +131,7 @@ synthetic scene
   -> target heatmaps from known geometry
   -> heatmap-reader training on Mac Studio
   -> model inference endpoint on Mac Studio
+  -> Ubuntu threshold authority
   -> Pi camera/proximity consumer
   -> local projection latches
   -> motor reflex policy
@@ -143,9 +181,9 @@ or near-threshold structure:
 - map gap where a second view would collapse uncertainty.
 
 These become graph records such as `slip_opportunity`,
-`threshold_crossing`, `failure`, and `affordance`. The LLM receives those
-records plus bounded regime options, then adjusts thresholds rather than direct
-motor commands.
+`threshold_crossing`, `failure`, and `affordance`. The AI proxy receives those
+records plus bounded regime options, then proposes threshold updates rather
+than direct motor commands.
 
 ## Next Implementation Slots
 

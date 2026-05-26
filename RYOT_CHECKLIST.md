@@ -569,6 +569,31 @@ task: mac-studio-migration
 - [x] Codex pings operator via GPT-app phone loop with check-in-ready message.
 - [ ] Operator confirms migration ready; lane carries over to Mac Studio side and closes after the new RYOT pipeline is up.
 
+## operator-hardware-bringup
+
+```text
+closure_owner: operator
+thread: hardware
+lane: mac-studio-ubuntu-robot-layout
+claim: operator:physical-bringup
+phase: design
+```
+
+- [ ] Mac Studio confirmed as AI, RYOT, git, GPU, and operator plane.
+- [ ] Ubuntu VM confirmed as robot, Linux build/test, data, and validation plane.
+- [ ] Repo sync or shared workspace path chosen between Mac Studio and Ubuntu VM.
+- [ ] Ubuntu VM can reach the Mac Studio AI REST proxy.
+- [ ] Mac Studio AI REST proxy cannot command actuators.
+- [ ] AI threshold API accepts only normalized `[0.0, 1.0]` threshold values.
+- [ ] Ubuntu threshold authority rejects unknown threshold keys.
+- [ ] Ubuntu threshold authority rejects threshold values outside `[0.0, 1.0]`.
+- [ ] Ubuntu threshold authority enforces max delta, cooldown, TTL, and rollback.
+- [ ] Robot runtime continues safely when the AI proxy is down or slow.
+- [ ] Human-visible logs show every accepted and rejected threshold proposal.
+- [ ] Physical e-stop or independent power-cut path is verified before real motion.
+- [ ] Selector research host chosen with rewirable posit/token selection.
+- [ ] `llama.cpp` is not used as the direct runtime selector host unless the operator explicitly re-approves it.
+
 ## Operator Blocked Queue
 
 This is the visible list of items waiting on operator input. Both agents
@@ -595,8 +620,12 @@ agent reopens the lane and removes the item from this section.
 
 Known operator-side resources (treat as available unless told otherwise):
 
-- **Mac Studio** — LM Studio + PyTorch service host.
-- **Raspberry Pi** — sensor aggregation + motor control reflex tier.
+- **Mac Studio** — RYOT, Codex, Claude, AI REST proxy, selector/model host,
+  Apple GPU service tier, and operator console.
+- **Ubuntu VM on Mac Studio** — Linux robot build/test/runtime plane and
+  threshold authority; no native Apple GPU assumption.
+- **Raspberry Pi** — optional physical sensor aggregation + motor control
+  reflex tier.
 - **Arduino** — optional hard-real-time tier; operator can push smarts
   there if needed.
 - **3D printer** — custom mounts, brackets, chassis, sensor housings.

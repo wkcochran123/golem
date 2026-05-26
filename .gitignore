@@ -10,3 +10,5 @@ concept_nodes.log
 *.blg
 *.log
 venv
+golem2/runs/
+.jupyter-work/

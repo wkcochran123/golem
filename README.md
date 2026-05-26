@@ -6,18 +6,26 @@ model convinces itself to do something in real life.
 Even if you are very familiar with LLMs, this little algorithm can
 feel rather spooky.
 
-golem is two separate systems, a robot and a heavily modified LLM
-host.  The robot without the modified LLM host will still iterate
-and solve problems, but it cannot learn how to get better.
+golem is two separate systems: a robot runtime and an AI host.  The
+robot without the AI host will still iterate and solve problems, but
+it cannot learn how to get better.
 
-The heavily modified LLM host is a bit of a tangle and getting that
-started might take a bit of a lift.  However, the robot can get
-started very easily.
+The current hardware plan keeps the AI infrastructure on the Mac Studio
+and runs the Linux robot infrastructure inside an Ubuntu VM.  The Ubuntu
+side owns builds, sensor data, logs, local validation, and all actuation.
+The Mac Studio side owns RYOT, model hosts, GPU-backed inference, and the
+small REST proxy used for AI calls.
+
+The AI boundary is intentionally narrow: AI services may propose normalized
+threshold values in the range `[0.0, 1.0]`.  They may not send motor commands
+or directly control hardware.  The Ubuntu robot runtime validates threshold
+names, ranges, step size, cooldowns, TTL, and rollback before accepting any
+proposal.
 
 ## Quickstart for the golem robot
 
 For those eager to watch a robot build a tool and use it, golem comes somewhat
-ready to go out of the package, all you need is access to an LLM
+ready to go out of the package.  The legacy path only needs access to an LLM
 host that can interact with the OpenAI /v1/chat/completions API.
 
 From the `python/` directory, execute the following three commands
@@ -42,7 +50,10 @@ has fairly chatty output so you can watch it do some things.
 4. `python ctrl.py` (optional) In another terminal, you can
 start a primitive command and control flask application.
 
-For more on how to setup the system that let's the robot learn how to be
-a better robot, download and install a [modified llama.cpp host](https://github.com/wkcochran123/golem_llama.cpp)
-that will allow the robot to express success or failure to the LLM so
-it can be used to conidition the tokens for selection.
+For the current Mac Studio architecture, prefer an AI host where token or
+posit selection can be rewired directly, such as an MLX/`mlx-lm` or
+Transformers-based generation loop.  The legacy
+[modified llama.cpp host](https://github.com/wkcochran123/golem_llama.cpp)
+captures the original experiment, but the active design treats `llama.cpp`
+as too rigid and timing-sensitive for selector research unless the operator
+explicitly chooses it for a lane.

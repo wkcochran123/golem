@@ -914,6 +914,51 @@ If the agents cannot proceed safely without the RYOT operator, send a handoff
 with `status: BLOCKED`. The body should ask the smallest concrete question that
 unblocks the job.
 
+## Robot Hardware Standing Architecture
+
+For the current Mac Studio build, use this default split unless the RYOT
+operator explicitly changes it:
+
+```text
+Mac Studio host
+  Codex, Claude, RYOT files, watchers/monitor, git credentials
+  AI REST proxy
+  selector/model hosts
+  Apple GPU-backed inference services
+
+Ubuntu VM on the Mac Studio
+  Linux robot builds and tests
+  robot runtime services
+  sensor data aggregation and event ledgers
+  threshold authority and validation
+
+Physical robot tiers
+  Raspberry Pi optional for sensor/actuator bridge
+  Arduino optional for deterministic timing or hardware kill paths
+  independent e-stop / power cut before real motion
+```
+
+The Mac Studio is the AI and operator plane. The Ubuntu VM is the Linux robot
+infrastructure and validation plane. Ubuntu may call the Mac Studio through a
+small REST proxy, but the AI proxy is advisory only.
+
+Standing constraints for robot-facing RYOT lanes:
+
+```text
+constraint: AI may only propose normalized threshold values in [0.0, 1.0]
+constraint: no AI-originated actuation commands
+constraint: Ubuntu threshold authority validates allowlist, range, max delta, TTL, cooldown, and rollback
+constraint: robot runtime must remain safe when the AI proxy is slow or unavailable
+constraint: no hardware-facing change or real motor run without operator approval
+constraint: do not rely on Ubuntu VM native access to the Mac Studio GPU; use a Mac-hosted service bridge
+constraint: llama.cpp is not the direct selector research host unless operator explicitly approves it
+```
+
+When discussing selector research, prefer a host where posit or token selection
+can be rewired in the generation loop, such as MLX/`mlx-lm` or a Transformers
+prototype. Treat `llama.cpp` as a deployable engine only after its timing and
+selector behavior are deliberately re-approved for the lane.
+
 ## Iteration Pattern
 
 Each round should tighten the problem.
